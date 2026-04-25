@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 // ── 資料定義 ──────────────────────────────────────────────
-const PHARMACISTS = ["藥師A", "藥師B", "藥師C", "藥師D", "藥師E", "藥師F"];
+const PHARMACISTS = ["黃永成", "林家薐", "黃詩婷", "林亭君", "劉士宏", "曾彥哲"];
 
 const DRUG_LIST = {
   MDI: ["Symbicort Rapihaler", "Berotec N", "Duasma", "Flixotide", "Seretide 250 evohaler", "Bevespi", "Breztri", "Trimbow", "Striverdi", "Spiriva", "Spiolto"],
@@ -127,9 +127,21 @@ function ScoreBtn({ value, onChange, options, colorMap }) {
 
 // ── 元件：查檢步驟列 ──────────────────────────────────────
 function CheckRow({ step, value, note, onValue, onNote, hasICS }) {
+  const inputRef = useState(null);
   if (step.icsOnly && !hasICS) return null;
   const isCorrect = value === "正確";
   const isError = value === "錯誤";
+
+  const handleValue = (v) => {
+    onValue(v);
+    if (v === "錯誤") {
+      setTimeout(() => {
+        const el = document.getElementById("note-" + step.id);
+        if (el) el.focus();
+      }, 50);
+    }
+  };
+
   return (
     <div style={{
       border: `2px solid ${isError ? "#fca5a5" : isCorrect ? "#bbf7d0" : "#e2e8f0"}`,
@@ -145,12 +157,18 @@ function CheckRow({ step, value, note, onValue, onNote, hasICS }) {
           </div>
           <div style={{ fontSize: 13, color: "#475569" }}>{step.desc}</div>
         </div>
-        <ScoreBtn value={value} onChange={onValue} options={["正確", "錯誤", "無法判定"]}
+        <ScoreBtn value={value} onChange={handleValue} options={["正確", "錯誤", "無法判定"]}
           colorMap={{ "正確": "#16a34a", "錯誤": "#ef4444", "無法判定": "#f59e0b" }} />
       </div>
       {isError && (
-        <input placeholder="錯誤原因（訪談/觀察）..." value={note} onChange={e => onNote(e.target.value)}
-          style={{ marginTop: 8, width: "100%", padding: "6px 10px", borderRadius: 8, border: "1px solid #fca5a5", fontSize: 13, boxSizing: "border-box" }} />
+        <textarea
+          id={"note-" + step.id}
+          placeholder="錯誤原因（訪談/觀察）..."
+          value={note}
+          onChange={e => onNote(e.target.value)}
+          rows={2}
+          style={{ marginTop: 8, width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #fca5a5", fontSize: 13, boxSizing: "border-box", resize: "vertical", fontFamily: "inherit" }}
+        />
       )}
     </div>
   );
