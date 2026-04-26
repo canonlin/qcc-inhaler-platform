@@ -6,7 +6,7 @@ const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyGeyuic-HQOgu
 const PHARMACISTS = ["黃永成", "林家薐", "林亭君", "黃詩婷", "劉士宏", "曾彥哲"];
 
 const DRUG_LIST = {
-  MDI: ["Symbicort Rapihaler", "Berotec N", "Duasma", "Flixotide", "Seretide 250 evohaler", "Bevespi", "Breztri", "Trimbow", "Striverdi", "Spiriva", "Spiolto"],
+  MDI: ["Symbicort", "Berotec N", "Duasma", "Flixotide", "Seretide 250 evohaler", "Bevespi", "Breztri", "Trimbow"],
   DPI: ["Relvar (Ellipta)", "Anoro (Ellipta)", "Trelegy 92/55/22 (Ellipta)", "Trelegy 184/55/22 (Ellipta)", "Ultibro (Breezhaler)"],
   SMI: ["Spiriva Respimat", "Spiolto Respimat", "Striverdi Respimat"],
 };
