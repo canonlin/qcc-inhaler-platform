@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 
 // ── 資料定義 ──────────────────────────────────────────────
-const PHARMACISTS = ["藥師A", "藥師B", "藥師C", "藥師D", "藥師E", "藥師F"];
+const PHARMACISTS = ["黃永成", "林家薐", "林亭君", "黃詩婷", "劉士宏", "曾彥哲"];
 
 const DRUG_LIST = {
   MDI: ["Symbicort Rapihaler", "Berotec N", "Duasma", "Flixotide", "Seretide 250 evohaler", "Bevespi", "Breztri", "Trimbow", "Striverdi", "Spiriva", "Spiolto"],
