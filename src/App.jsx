@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback } from "react";
 
 // ── 資料定義 ──────────────────────────────────────────────
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyGeyuic-HQOguRGayLtPnO2nqonulEVEsfP5wCj0XI2cIxV5h6ib9gfraIQMtLGxvUhw/exec";
+
 const PHARMACISTS = ["黃永成", "林家薐", "林亭君", "黃詩婷", "劉士宏", "曾彥哲"];
 
 const DRUG_LIST = {
@@ -417,7 +419,7 @@ function PharmacistForm({ onDone, onBack }) {
     return score;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const { correct, total, rate } = calcScore();
     const kScore = calcKnowledge();
     const criticalErrors = getSteps().filter(s => s.critical && checks[s.id] === "錯誤");
@@ -455,6 +457,17 @@ function PharmacistForm({ onDone, onBack }) {
       ...stepResults,
       ...kResults,
     };
+
+    // 送出到 Google Sheets
+    try {
+      await fetch(GOOGLE_SHEET_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sheetType: "pharmacist", values: record }),
+      });
+    } catch(e) { console.warn("Google Sheets 儲存失敗，資料仍保留在本機", e); }
+
     onDone(record);
     setStep(3);
   };
@@ -656,7 +669,7 @@ function PatientForm({ onDone, onBack }) {
   const allQs = phase === "改善後" ? [...SATISFACTION_QS, ...SATISFACTION_AFTER_QS] : SATISFACTION_QS;
   const canSubmit = identity && ageGroup && allQs.every(q => scores[q.id]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const avg = allQs.reduce((s, q) => s + (scores[q.id] || 0), 0) / allQs.length;
     const record = {
       填寫日期: new Date().toISOString().slice(0, 10),
@@ -669,6 +682,17 @@ function PatientForm({ onDone, onBack }) {
       最有幫助: openGood,
       建議改進: openImprove,
     };
+
+    // 送出到 Google Sheets
+    try {
+      await fetch(GOOGLE_SHEET_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sheetType: "satisfaction", values: record }),
+      });
+    } catch(e) { console.warn("Google Sheets 儲存失敗", e); }
+
     onDone(record);
     setSubmitted(true);
   };
