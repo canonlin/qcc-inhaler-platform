@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 
 // ── 資料定義 ──────────────────────────────────────────────
-const PHARMACISTS = ["黃永成", "林家薐", "黃詩婷", "林亭君", "劉士宏", "曾彥哲"];
+const PHARMACISTS = ["藥師A", "藥師B", "藥師C", "藥師D", "藥師E", "藥師F"];
 
 const DRUG_LIST = {
   MDI: ["Symbicort Rapihaler", "Berotec N", "Duasma", "Flixotide", "Seretide 250 evohaler", "Bevespi", "Breztri", "Trimbow", "Striverdi", "Spiriva", "Spiolto"],
@@ -126,20 +126,24 @@ function ScoreBtn({ value, onChange, options, colorMap }) {
 }
 
 // ── 元件：查檢步驟列 ──────────────────────────────────────
-function CheckRow({ step, value, note, onValue, onNote, hasICS }) {
-  const inputRef = useState(null);
+function CheckRow({ step, value, onValue, onNote, hasICS }) {
+  const [localNote, setLocalNote] = useState("");
+  const textareaRef = useRef(null);
+
   if (step.icsOnly && !hasICS) return null;
   const isCorrect = value === "正確";
   const isError = value === "錯誤";
 
-  const handleValue = (v) => {
+  const handleValue = useCallback((v) => {
     onValue(v);
     if (v === "錯誤") {
-      setTimeout(() => {
-        const el = document.getElementById("note-" + step.id);
-        if (el) el.focus();
-      }, 50);
+      setTimeout(() => { if (textareaRef.current) textareaRef.current.focus(); }, 30);
     }
+  }, [onValue]);
+
+  const handleNote = (e) => {
+    setLocalNote(e.target.value);
+    onNote(e.target.value);
   };
 
   return (
@@ -147,7 +151,7 @@ function CheckRow({ step, value, note, onValue, onNote, hasICS }) {
       border: `2px solid ${isError ? "#fca5a5" : isCorrect ? "#bbf7d0" : "#e2e8f0"}`,
       borderRadius: 12, padding: "12px 16px", marginBottom: 10,
       background: isError ? "#fff5f5" : isCorrect ? "#f0fdf4" : "#fff",
-      transition: "all 0.2s",
+      transition: "background 0.2s, border-color 0.2s",
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
         <div style={{ flex: 1 }}>
@@ -162,12 +166,17 @@ function CheckRow({ step, value, note, onValue, onNote, hasICS }) {
       </div>
       {isError && (
         <textarea
-          id={"note-" + step.id}
-          placeholder="錯誤原因（訪談/觀察）..."
-          value={note}
-          onChange={e => onNote(e.target.value)}
+          ref={textareaRef}
+          placeholder="請輸入錯誤原因（訪談/觀察記錄）..."
+          value={localNote}
+          onChange={handleNote}
           rows={2}
-          style={{ marginTop: 8, width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #fca5a5", fontSize: 13, boxSizing: "border-box", resize: "vertical", fontFamily: "inherit" }}
+          style={{
+            marginTop: 10, width: "100%", padding: "8px 12px",
+            borderRadius: 8, border: "1.5px solid #fca5a5",
+            fontSize: 14, boxSizing: "border-box",
+            resize: "vertical", fontFamily: "inherit", lineHeight: 1.5,
+          }}
         />
       )}
     </div>
@@ -481,7 +490,7 @@ function PharmacistForm({ onDone, onBack }) {
         </div>
 
         {steps.map(s => (
-          <CheckRow key={s.id} step={s} value={checks[s.id] || ""} note={notes[s.id] || ""} hasICS={hasICS}
+          <CheckRow key={s.id} step={s} value={checks[s.id] || ""} hasICS={hasICS}
             onValue={v => setChecks(p => ({ ...p, [s.id]: v }))}
             onNote={v => setNotes(p => ({ ...p, [s.id]: v }))} />
         ))}
