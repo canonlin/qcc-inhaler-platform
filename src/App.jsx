@@ -125,6 +125,53 @@ function ScoreBtn({ value, onChange, options, colorMap }) {
   );
 }
 
+// ── 元件：操作查檢頁面（獨立元件，避免父層重渲染） ────────────
+function CheckPageView({ deviceType, drugName, hasICS, setHasICS, checks, setChecks, setNotes, calcScore, getSteps }) {
+  const steps = getSteps();
+  const { correct, total } = calcScore();
+  const criticals = steps.filter(s => s.critical && checks[s.id] === "錯誤");
+
+  // 用 useCallback 穩定 onValue/onNote，防止 CheckRow 重建
+  const makeOnValue = useCallback((id) => (v) => {
+    setChecks(p => ({ ...p, [id]: v }));
+  }, [setChecks]);
+
+  const makeOnNote = useCallback((id) => (v) => {
+    setNotes(p => ({ ...p, [id]: v }));
+  }, [setNotes]);
+
+  return (
+    <div>
+      <div style={sectionTitle}>🔍 操作查檢表｜{deviceType} - {drugName}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, background: "#f0fdf4", padding: "10px 16px", borderRadius: 12 }}>
+        <span style={{ fontSize: 13, fontWeight: 600 }}>含ICS成分？</span>
+        <BtnGroup options={["是", "否"]} value={hasICS ? "是" : "否"} onChange={v => setHasICS(v === "是")} color="#059669" />
+      </div>
+      {steps.map(s => (
+        <CheckRow
+          key={s.id}
+          step={s}
+          value={checks[s.id] || ""}
+          hasICS={hasICS}
+          onValue={makeOnValue(s.id)}
+          onNote={makeOnNote(s.id)}
+        />
+      ))}
+      <div style={{ marginTop: 16, padding: "14px 18px", background: "#f8fafc", borderRadius: 12, border: "1px solid #e2e8f0" }}>
+        <div style={{ fontWeight: 700, fontSize: 16 }}>
+          操作得分：<span style={{ color: "#0ea5e9" }}>{correct} / {total}</span>
+          　正確率：<span style={{ color: total && correct / total >= 0.8 ? "#16a34a" : "#ef4444" }}>{total ? (correct / total * 100).toFixed(0) : 0}%</span>
+        </div>
+        {criticals.length > 0 && (
+          <div style={{ marginTop: 8, color: "#ef4444", fontSize: 13, fontWeight: 600 }}>
+            ⚠ 重大錯誤：{criticals.map(s => s.label).join("、")}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── 元件：查檢步驟列 ──────────────────────────────────────
 function CheckRow({ step, value, onValue, onNote, hasICS }) {
   const [localNote, setLocalNote] = useState("");
@@ -476,39 +523,7 @@ function PharmacistForm({ onDone, onBack }) {
   );
 
   // ── 操作查檢頁面
-  const CheckPage = () => {
-    const steps = getSteps();
-    const { correct, total } = calcScore();
-    const criticals = steps.filter(s => s.critical && checks[s.id] === "錯誤");
-    return (
-      <div>
-        <div style={sectionTitle}>🔍 操作查檢表｜{basic.deviceType} - {basic.drugName}</div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, background: "#f0fdf4", padding: "10px 16px", borderRadius: 12 }}>
-          <span style={{ fontSize: 13, fontWeight: 600 }}>含ICS成分？</span>
-          <BtnGroup options={["是", "否"]} value={hasICS ? "是" : "否"} onChange={v => setHasICS(v === "是")} color="#059669" />
-        </div>
-
-        {steps.map(s => (
-          <CheckRow key={s.id} step={s} value={checks[s.id] || ""} hasICS={hasICS}
-            onValue={v => setChecks(p => ({ ...p, [s.id]: v }))}
-            onNote={v => setNotes(p => ({ ...p, [s.id]: v }))} />
-        ))}
-
-        <div style={{ marginTop: 16, padding: "14px 18px", background: "#f8fafc", borderRadius: 12, border: "1px solid #e2e8f0" }}>
-          <div style={{ fontWeight: 700, fontSize: 16 }}>
-            操作得分：<span style={{ color: "#0ea5e9" }}>{correct} / {total}</span>
-            　正確率：<span style={{ color: correct / total >= 0.8 ? "#16a34a" : "#ef4444" }}>{total ? (correct / total * 100).toFixed(0) : 0}%</span>
-          </div>
-          {criticals.length > 0 && (
-            <div style={{ marginTop: 8, color: "#ef4444", fontSize: 13, fontWeight: 600 }}>
-              ⚠ 重大錯誤：{criticals.map(s => s.label).join("、")}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
+  // CheckPage 改為傳 props 呼叫外部元件，避免在內部定義造成重渲染
 
   // ── 知識評估頁面
   const KnowledgePage = () => {
@@ -597,7 +612,17 @@ function PharmacistForm({ onDone, onBack }) {
 
         <div style={{ background: "#fff", borderRadius: 20, padding: "24px 20px", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
           {step === 0 && <BasicPage />}
-          {step === 1 && <CheckPage />}
+          {step === 1 && <CheckPageView
+            deviceType={basic.deviceType}
+            drugName={basic.drugName}
+            hasICS={hasICS}
+            setHasICS={setHasICS}
+            checks={checks}
+            setChecks={setChecks}
+            setNotes={setNotes}
+            calcScore={calcScore}
+            getSteps={getSteps}
+          />}
           {step === 2 && <KnowledgePage />}
           {step === 3 && <DonePage />}
 
