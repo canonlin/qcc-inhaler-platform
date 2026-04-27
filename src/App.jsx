@@ -127,6 +127,47 @@ function ScoreBtn({ value, onChange, options, colorMap }) {
   );
 }
 
+// ── 元件：衛教時間輸入（獨立元件，避免焦點消失） ────────────
+function TimeInput({ value, onChange }) {
+  const [local, setLocal] = useState(value || "");
+  const inputRef = useRef(null);
+
+  const handleChange = (e) => {
+    setLocal(e.target.value);
+    onChange(e.target.value);
+  };
+
+  const handleMinus = () => {
+    const v = String(Math.max(0, (parseInt(local) || 0) - 1));
+    setLocal(v);
+    onChange(v);
+  };
+
+  const handlePlus = () => {
+    const v = String((parseInt(local) || 0) + 1);
+    setLocal(v);
+    onChange(v);
+  };
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <button onClick={handleMinus}
+        style={{ width: 36, height: 36, borderRadius: 8, border: "2px solid #e2e8f0", background: "#f8fafc", fontSize: 20, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
+      <input
+        ref={inputRef}
+        type="number" min="0" max="120"
+        placeholder="0"
+        value={local}
+        onChange={handleChange}
+        style={{ width: 72, padding: "8px 10px", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 16, fontWeight: 700, textAlign: "center", boxSizing: "border-box" }}
+      />
+      <span style={{ fontSize: 13, color: "#64748b" }}>分鐘</span>
+      <button onClick={handlePlus}
+        style={{ width: 36, height: 36, borderRadius: 8, border: "2px solid #e2e8f0", background: "#f8fafc", fontSize: 20, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>＋</button>
+    </div>
+  );
+}
+
 // ── 元件：操作查檢頁面（獨立元件，避免父層重渲染） ────────────
 function CheckPageView({ deviceType, drugName, hasICS, setHasICS, checks, setChecks, setNotes, calcScore, getSteps }) {
   const steps = getSteps();
@@ -529,20 +570,7 @@ function PharmacistForm({ onDone, onBack }) {
         <BtnGroup options={["無", "有(院內)", "有(院外)"]} value={basic.priorEducation} onChange={v => setB("priorEducation", v)} color="#6d28d9" />
       </Row>
       <Row label="衛教時間（分鐘）">
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button onClick={() => setB("educationTime", String(Math.max(0, (parseInt(basic.educationTime) || 0) - 1)))}
-            style={{ width: 36, height: 36, borderRadius: 8, border: "2px solid #e2e8f0", background: "#f8fafc", fontSize: 20, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
-          <input
-            type="number" min="0" max="120"
-            placeholder="0"
-            value={basic.educationTime}
-            onChange={e => setB("educationTime", e.target.value)}
-            style={{ width: 72, padding: "8px 10px", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 16, fontWeight: 700, textAlign: "center", boxSizing: "border-box" }}
-          />
-          <span style={{ fontSize: 13, color: "#64748b" }}>分鐘</span>
-          <button onClick={() => setB("educationTime", String((parseInt(basic.educationTime) || 0) + 1))}
-            style={{ width: 36, height: 36, borderRadius: 8, border: "2px solid #e2e8f0", background: "#f8fafc", fontSize: 20, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>＋</button>
-        </div>
+        <TimeInput value={basic.educationTime} onChange={v => setB("educationTime", v)} />
       </Row>
     </div>
   );
