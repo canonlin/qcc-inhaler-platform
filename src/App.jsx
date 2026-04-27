@@ -3,7 +3,7 @@ import { useState, useRef, useCallback } from "react";
 // ── 資料定義 ──────────────────────────────────────────────
 const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyGeyuic-HQOguRGayLtPnO2nqonulEVEsfP5wCj0XI2cIxV5h6ib9gfraIQMtLGxvUhw/exec";
 
-const PHARMACISTS = ["藥師A", "藥師B", "藥師C", "藥師D", "藥師E", "藥師F"];
+const PHARMACISTS = ["黃永成", "林家薐", "林亭君", "黃詩婷", "曾彥哲", "劉士宏"];
 
 const DRUG_LIST = {
   MDI: ["Symbicort", "Berotec N", "Duasma", "Flixotide", "Seretide 250 evohaler", "Bevespi", "Breztri", "Trimbow"],
@@ -636,19 +636,21 @@ function PharmacistForm({ onDone, onBack }) {
         {step < 3 && <StepIndicator steps={WIZARD_STEPS} current={step} />}
 
         <div style={{ background: "#fff", borderRadius: 20, padding: "24px 20px", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
-          {step === 0 && <BasicPage />}
-          {step === 1 && <CheckPageView
-            deviceType={basic.deviceType}
-            drugName={basic.drugName}
-            hasICS={hasICS}
-            setHasICS={setHasICS}
-            checks={checks}
-            setChecks={setChecks}
-            setNotes={setNotes}
-            calcScore={calcScore}
-            getSteps={getSteps}
-          />}
-          {step === 2 && <KnowledgePage />}
+          <div style={{ display: step === 0 ? "block" : "none" }}><BasicPage /></div>
+          <div style={{ display: step === 1 ? "block" : "none" }}>
+            <CheckPageView
+              deviceType={basic.deviceType}
+              drugName={basic.drugName}
+              hasICS={hasICS}
+              setHasICS={setHasICS}
+              checks={checks}
+              setChecks={setChecks}
+              setNotes={setNotes}
+              calcScore={calcScore}
+              getSteps={getSteps}
+            />
+          </div>
+          <div style={{ display: step === 2 ? "block" : "none" }}><KnowledgePage /></div>
           {step === 3 && <DonePage />}
 
           {step < 3 && (
