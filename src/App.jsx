@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 // ── 資料定義 ──────────────────────────────────────────────
 const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyGeyuic-HQOguRGayLtPnO2nqonulEVEsfP5wCj0XI2cIxV5h6ib9gfraIQMtLGxvUhw/exec";
@@ -127,6 +127,67 @@ function ScoreBtn({ value, onChange, options, colorMap }) {
   );
 }
 
+// ── 元件：知識評估頁面（獨立元件） ────────────────────────────
+function KnowledgePageView({ knowledge, setKnowledge, calcKnowledge }) {
+  const score = calcKnowledge();
+  const getLevel = (s) => s >= 9 ? { label: "知識優秀", color: "#16a34a" } : s >= 7 ? { label: "知識良好", color: "#0ea5e9" } : s >= 4 ? { label: "部分正確", color: "#f59e0b" } : { label: "知識不足", color: "#ef4444" };
+  const lv = getLevel(score);
+  return (
+    <div>
+      <div style={sectionTitle}>🧠 吸入劑知識評估（藥師口頭詢問，代為勾選）</div>
+      <div style={{ color: "#64748b", fontSize: 13, marginBottom: 16 }}>請口頭逐題念出，病人回答「對」或「不對」</div>
+      {KNOWLEDGE_QS.map((q, i) => (
+        <div key={q.id} style={{ marginBottom: 12, padding: "12px 16px", background: "#f8fafc", borderRadius: 12, border: "1px solid #e2e8f0" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
+            <div style={{ flex: 1, fontSize: 14, color: "#1e293b", lineHeight: 1.5 }}>
+              <span style={{ fontWeight: 700, color: "#0ea5e9" }}>Q{i + 1}.</span> {q.text}
+              {q.reverse && <span style={{ marginLeft: 6, fontSize: 11, background: "#fef3c7", color: "#92400e", padding: "1px 6px", borderRadius: 4 }}>反向題</span>}
+            </div>
+            <ScoreBtn value={knowledge[q.id] || ""} onChange={v => setKnowledge(p => ({ ...p, [q.id]: v }))}
+              options={["對", "不對"]} colorMap={{ "對": "#0ea5e9", "不對": "#ef4444" }} />
+          </div>
+        </div>
+      ))}
+      <div style={{ marginTop: 16, padding: "14px 18px", background: "#f0f9ff", borderRadius: 12, border: `2px solid ${lv.color}` }}>
+        <div style={{ fontWeight: 700, fontSize: 17 }}>
+          知識分數：<span style={{ color: lv.color }}>{score} / 10</span>
+          　<span style={{ fontSize: 14, color: lv.color }}>【{lv.label}】</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── 元件：完成頁（獨立元件） ────────────────────────────────
+function DonePageView({ calcScore, calcKnowledge, basic, onBack }) {
+  const { correct, total } = calcScore();
+  const kScore = calcKnowledge();
+  return (
+    <div style={{ textAlign: "center", padding: "32px 0" }}>
+      <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
+      <div style={{ fontSize: 22, fontWeight: 900, color: "#1e293b", marginBottom: 8 }}>收案完成！</div>
+      <div style={{ fontSize: 14, color: "#64748b", marginBottom: 24 }}>{basic.date}｜{basic.campus}｜{basic.pharmacist}</div>
+      <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+        {[
+          { label: "操作正確率", value: `${total ? (correct / total * 100).toFixed(0) : 0}%`, color: "#0ea5e9" },
+          { label: "知識分數", value: `${kScore}/10`, color: "#10b981" },
+        ].map(d => (
+          <div key={d.label} style={{ padding: "16px 24px", background: "#f8fafc", borderRadius: 16, border: `2px solid ${d.color}` }}>
+            <div style={{ fontSize: 24, fontWeight: 900, color: d.color }}>{d.value}</div>
+            <div style={{ fontSize: 13, color: "#64748b" }}>{d.label}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ marginTop: 24, padding: 14, background: "#f0fdf4", borderRadius: 12, fontSize: 14, color: "#166534" }}>
+        💡 請將此裝置交給病人填寫「滿意度問卷」（回首頁 → 病人填寫）
+      </div>
+      <button onClick={onBack} style={{ marginTop: 20, padding: "12px 32px", borderRadius: 12, border: "none", background: "#0ea5e9", color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>
+        返回首頁
+      </button>
+    </div>
+  );
+}
+
 // ── 元件：基本資料頁面（獨立元件，避免父層重渲染） ────────────
 function BasicPageView({ basic, setB, toggleDx }) {
   return (
@@ -171,7 +232,10 @@ function BasicPageView({ basic, setB, toggleDx }) {
       </Row>
       {basic.deviceType && (
         <Row label="藥品名稱">
-          <select value={basic.drugName} onChange={e => setB("drugName", e.target.value)} style={inputStyle}>
+          <select value={basic.drugName} onChange={e => {
+            const val = e.target.value;
+            setB("drugName", val);
+          }} style={inputStyle}>
             <option value="">請選擇</option>
             {DRUG_LIST[basic.deviceType]?.map(d => <option key={d}>{d}</option>)}
           </select>
@@ -487,9 +551,18 @@ function PharmacistForm({ onDone, onBack }) {
   });
 
   // 查檢表
+  const NO_ICS_DRUGS = ["Anoro", "Ultibro", "Berotec N", "Spiriva", "Spiolto", "Striverdi"];
   const [hasICS, setHasICS] = useState(true);
   const [checks, setChecks] = useState({});
   const [notes, setNotes] = useState({});
+
+  // 選藥品時自動判斷是否含ICS
+  useEffect(() => {
+    if (basic.drugName) {
+      const noICS = NO_ICS_DRUGS.some(d => basic.drugName.includes(d));
+      setHasICS(!noICS);
+    }
+  }, [basic.drugName]);
 
   // 知識評估
   const [knowledge, setKnowledge] = useState({});
@@ -580,64 +653,9 @@ function PharmacistForm({ onDone, onBack }) {
   // CheckPage 改為傳 props 呼叫外部元件，避免在內部定義造成重渲染
 
   // ── 知識評估頁面
-  const KnowledgePage = () => {
-    const score = calcKnowledge();
-    const getLevel = (s) => s >= 9 ? { label: "知識優秀", color: "#16a34a" } : s >= 7 ? { label: "知識良好", color: "#0ea5e9" } : s >= 4 ? { label: "部分正確", color: "#f59e0b" } : { label: "知識不足", color: "#ef4444" };
-    const lv = getLevel(score);
-    return (
-      <div>
-        <div style={sectionTitle}>🧠 吸入劑知識評估（藥師口頭詢問，代為勾選）</div>
-        <div style={{ color: "#64748b", fontSize: 13, marginBottom: 16 }}>請口頭逐題念出，病人回答「對」或「不對」</div>
-        {KNOWLEDGE_QS.map((q, i) => (
-          <div key={q.id} style={{ marginBottom: 12, padding: "12px 16px", background: "#f8fafc", borderRadius: 12, border: "1px solid #e2e8f0" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
-              <div style={{ flex: 1, fontSize: 14, color: "#1e293b", lineHeight: 1.5 }}>
-                <span style={{ fontWeight: 700, color: "#0ea5e9" }}>Q{i + 1}.</span> {q.text}
-                {q.reverse && <span style={{ marginLeft: 6, fontSize: 11, background: "#fef3c7", color: "#92400e", padding: "1px 6px", borderRadius: 4 }}>反向題</span>}
-              </div>
-              <ScoreBtn value={knowledge[q.id] || ""} onChange={v => setKnowledge(p => ({ ...p, [q.id]: v }))}
-                options={["對", "不對"]} colorMap={{ "對": "#0ea5e9", "不對": "#ef4444" }} />
-            </div>
-          </div>
-        ))}
-        <div style={{ marginTop: 16, padding: "14px 18px", background: "#f0f9ff", borderRadius: 12, border: `2px solid ${lv.color}` }}>
-          <div style={{ fontWeight: 700, fontSize: 17 }}>
-            知識分數：<span style={{ color: lv.color }}>{score} / 10</span>
-            　<span style={{ fontSize: 14, color: lv.color }}>【{lv.label}】</span>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  // KnowledgePage → 外部元件 KnowledgePageView
 
-  // ── 完成頁
-  const DonePage = () => {
-    const { correct, total } = calcScore();
-    const kScore = calcKnowledge();
-    return (
-      <div style={{ textAlign: "center", padding: "32px 0" }}>
-        <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
-        <div style={{ fontSize: 22, fontWeight: 900, color: "#1e293b", marginBottom: 8 }}>收案完成！</div>
-        <div style={{ fontSize: 14, color: "#64748b", marginBottom: 24 }}>{basic.date}｜{basic.campus}｜{basic.pharmacist}</div>
-        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          {[
-            { label: "操作正確率", value: `${total ? (correct / total * 100).toFixed(0) : 0}%`, color: "#0ea5e9" },
-            { label: "知識分數", value: `${kScore}/10`, color: "#10b981" },
-          ].map(d => (
-            <div key={d.label} style={{ padding: "16px 24px", background: "#f8fafc", borderRadius: 16, border: `2px solid ${d.color}` }}>
-              <div style={{ fontSize: 24, fontWeight: 900, color: d.color }}>{d.value}</div>
-              <div style={{ fontSize: 13, color: "#64748b" }}>{d.label}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{ marginTop: 24, padding: 14, background: "#f0fdf4", borderRadius: 12, fontSize: 14, color: "#166534" }}>
-          💡 請將此裝置交給病人填寫「滿意度問卷」（回首頁 → 病人填寫）
-        </div>
-        <button onClick={onBack} style={{ marginTop: 20, padding: "12px 32px", borderRadius: 12, border: "none", background: "#0ea5e9", color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>
-          返回首頁
-        </button>
-      </div>
-    );
+  // DonePage → 外部元件 DonePageView
   };
 
   const canNext = () => {
@@ -681,8 +699,10 @@ function PharmacistForm({ onDone, onBack }) {
               getSteps={getSteps}
             />
           </div>
-          <div style={{ display: step === 2 ? "block" : "none" }}><KnowledgePage /></div>
-          {step === 3 && <DonePage />}
+          <div style={{ display: step === 2 ? "block" : "none" }}>
+            <KnowledgePageView knowledge={knowledge} setKnowledge={setKnowledge} calcKnowledge={calcKnowledge} />
+          </div>
+          {step === 3 && <DonePageView calcScore={calcScore} calcKnowledge={calcKnowledge} basic={basic} onBack={onBack} />}
 
           {step < 3 && (
             <div style={{ marginTop: 24, display: "flex", gap: 10 }}>
