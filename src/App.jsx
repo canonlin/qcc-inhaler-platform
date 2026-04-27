@@ -127,6 +127,69 @@ function ScoreBtn({ value, onChange, options, colorMap }) {
   );
 }
 
+// ── 元件：基本資料頁面（獨立元件，避免父層重渲染） ────────────
+function BasicPageView({ basic, setB, toggleDx }) {
+  return (
+    <div>
+      <div style={sectionTitle}>📋 基本資料</div>
+      <Row label="收案日期">
+        <input type="date" value={basic.date} onChange={e => setB("date", e.target.value)} style={inputStyle} />
+      </Row>
+      <Row label="院區">
+        <BtnGroup options={["斗六", "虎尾"]} value={basic.campus} onChange={v => setB("campus", v)} color="#0ea5e9" />
+      </Row>
+      <Row label="藥師">
+        <select value={basic.pharmacist} onChange={e => setB("pharmacist", e.target.value)} style={inputStyle}>
+          <option value="">請選擇</option>
+          {PHARMACISTS.map(p => <option key={p}>{p}</option>)}
+        </select>
+      </Row>
+      <Row label="病患類別">
+        <BtnGroup options={["初診衛教", "複診回測", "家屬/看護代領"]} value={basic.patientType} onChange={v => setB("patientType", v)} color="#7c3aed" />
+      </Row>
+      <Row label="年齡層">
+        <BtnGroup options={["<18歲", "18-64歲", "≥65歲"]} value={basic.ageGroup} onChange={v => setB("ageGroup", v)} color="#0369a1" />
+      </Row>
+      <Row label="性別">
+        <BtnGroup options={["男", "女"]} value={basic.gender} onChange={v => setB("gender", v)} color="#0369a1" />
+      </Row>
+      <Row label="診斷（可複選）">
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {["氣喘", "COPD", "兩者皆有", "其他"].map(d => (
+            <button key={d} onClick={() => toggleDx(d)} style={{
+              padding: "7px 14px", borderRadius: 8, border: "2px solid",
+              borderColor: basic.diagnosis.includes(d) ? "#0ea5e9" : "#e2e8f0",
+              background: basic.diagnosis.includes(d) ? "#0ea5e9" : "#fff",
+              color: basic.diagnosis.includes(d) ? "#fff" : "#374151",
+              fontWeight: 700, fontSize: 13, cursor: "pointer",
+            }}>{d}</button>
+          ))}
+        </div>
+      </Row>
+      <Row label="吸入劑型">
+        <BtnGroup options={["MDI", "DPI", "SMI"]} value={basic.deviceType} onChange={v => { setB("deviceType", v); setB("drugName", ""); }} color="#059669" />
+      </Row>
+      {basic.deviceType && (
+        <Row label="藥品名稱">
+          <select value={basic.drugName} onChange={e => setB("drugName", e.target.value)} style={inputStyle}>
+            <option value="">請選擇</option>
+            {DRUG_LIST[basic.deviceType]?.map(d => <option key={d}>{d}</option>)}
+          </select>
+        </Row>
+      )}
+      <Row label="使用多久">
+        <BtnGroup options={["初次使用", "<1個月", "1-6個月", ">6個月"]} value={basic.usageDuration} onChange={v => setB("usageDuration", v)} color="#b45309" />
+      </Row>
+      <Row label="曾接受衛教">
+        <BtnGroup options={["無", "有(院內)", "有(院外)"]} value={basic.priorEducation} onChange={v => setB("priorEducation", v)} color="#6d28d9" />
+      </Row>
+      <Row label="衛教時間（分鐘）">
+        <TimeInput value={basic.educationTime} onChange={v => setB("educationTime", v)} />
+      </Row>
+    </div>
+  );
+}
+
 // ── 元件：衛教時間輸入（獨立元件，避免焦點消失） ────────────
 function TimeInput({ value, onChange }) {
   const [local, setLocal] = useState(value || "");
@@ -513,68 +576,6 @@ function PharmacistForm({ onDone, onBack }) {
     setStep(3);
   };
 
-  // ── 基本資料頁面
-  const BasicPage = () => (
-    <div>
-      <div style={sectionTitle}>📋 基本資料</div>
-
-      <Row label="收案日期">
-        <input type="date" value={basic.date} onChange={e => setB("date", e.target.value)} style={inputStyle} />
-      </Row>
-      <Row label="院區">
-        <BtnGroup options={["斗六", "虎尾"]} value={basic.campus} onChange={v => setB("campus", v)} color="#0ea5e9" />
-      </Row>
-      <Row label="藥師">
-        <select value={basic.pharmacist} onChange={e => setB("pharmacist", e.target.value)} style={inputStyle}>
-          <option value="">請選擇</option>
-          {PHARMACISTS.map(p => <option key={p}>{p}</option>)}
-        </select>
-      </Row>
-      <Row label="病患類別">
-        <BtnGroup options={["初診衛教", "複診回測", "家屬/看護代領"]} value={basic.patientType} onChange={v => setB("patientType", v)} color="#7c3aed" />
-      </Row>
-      <Row label="年齡層">
-        <BtnGroup options={["<18歲", "18-64歲", "≥65歲"]} value={basic.ageGroup} onChange={v => setB("ageGroup", v)} color="#0369a1" />
-      </Row>
-      <Row label="性別">
-        <BtnGroup options={["男", "女"]} value={basic.gender} onChange={v => setB("gender", v)} color="#0369a1" />
-      </Row>
-      <Row label="診斷（可複選）">
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {["氣喘", "COPD", "兩者皆有", "其他"].map(d => (
-            <button key={d} onClick={() => toggleDx(d)} style={{
-              padding: "7px 14px", borderRadius: 8, border: "2px solid",
-              borderColor: basic.diagnosis.includes(d) ? "#0ea5e9" : "#e2e8f0",
-              background: basic.diagnosis.includes(d) ? "#0ea5e9" : "#fff",
-              color: basic.diagnosis.includes(d) ? "#fff" : "#374151",
-              fontWeight: 700, fontSize: 13, cursor: "pointer",
-            }}>{d}</button>
-          ))}
-        </div>
-      </Row>
-      <Row label="吸入劑型">
-        <BtnGroup options={["MDI", "DPI", "SMI"]} value={basic.deviceType} onChange={v => { setB("deviceType", v); setB("drugName", ""); }} color="#059669" />
-      </Row>
-      {basic.deviceType && (
-        <Row label="藥品名稱">
-          <select value={basic.drugName} onChange={e => setB("drugName", e.target.value)} style={inputStyle}>
-            <option value="">請選擇</option>
-            {DRUG_LIST[basic.deviceType]?.map(d => <option key={d}>{d}</option>)}
-          </select>
-        </Row>
-      )}
-      <Row label="使用多久">
-        <BtnGroup options={["初次使用", "<1個月", "1-6個月", ">6個月"]} value={basic.usageDuration} onChange={v => setB("usageDuration", v)} color="#b45309" />
-      </Row>
-      <Row label="曾接受衛教">
-        <BtnGroup options={["無", "有(院內)", "有(院外)"]} value={basic.priorEducation} onChange={v => setB("priorEducation", v)} color="#6d28d9" />
-      </Row>
-      <Row label="衛教時間（分鐘）">
-        <TimeInput value={basic.educationTime} onChange={v => setB("educationTime", v)} />
-      </Row>
-    </div>
-  );
-
   // ── 操作查檢頁面
   // CheckPage 改為傳 props 呼叫外部元件，避免在內部定義造成重渲染
 
@@ -664,7 +665,9 @@ function PharmacistForm({ onDone, onBack }) {
         {step < 3 && <StepIndicator steps={WIZARD_STEPS} current={step} />}
 
         <div style={{ background: "#fff", borderRadius: 20, padding: "24px 20px", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
-          <div style={{ display: step === 0 ? "block" : "none" }}><BasicPage /></div>
+          <div style={{ display: step === 0 ? "block" : "none" }}>
+            <BasicPageView basic={basic} setB={setB} toggleDx={toggleDx} />
+          </div>
           <div style={{ display: step === 1 ? "block" : "none" }}>
             <CheckPageView
               deviceType={basic.deviceType}
