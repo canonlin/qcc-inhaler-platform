@@ -347,7 +347,7 @@ function CheckRow({ step, value, onValue, onNote, hasICS }) {
   const [localNote, setLocalNote] = useState("");
   const textareaRef = useRef(null);
 
-  if (step.icsOnly && !hasICS) return null;
+  const hidden = step.icsOnly && !hasICS;
   const isCorrect = value === "正確";
   const isError = value === "錯誤";
 
@@ -364,6 +364,7 @@ function CheckRow({ step, value, onValue, onNote, hasICS }) {
   };
 
   return (
+    <div style={{ display: hidden ? "none" : "block" }}>
     <div style={{
       border: `2px solid ${isError ? "#fca5a5" : isCorrect ? "#bbf7d0" : "#e2e8f0"}`,
       borderRadius: 12, padding: "12px 16px", marginBottom: 10,
@@ -396,6 +397,7 @@ function CheckRow({ step, value, onValue, onNote, hasICS }) {
           }}
         />
       )}
+    </div>
     </div>
   );
 }
@@ -551,7 +553,7 @@ function PharmacistForm({ onDone, onBack }) {
   });
 
   // 查檢表
-  const NO_ICS_DRUGS = ["Anoro", "Ultibro", "Berotec N", "Spiriva", "Spiolto", "Striverdi"];
+  const NO_ICS_DRUGS = ["Anoro", "Ultibro", "Berotec N", "Bevespi", "Spiriva", "Spiolto", "Striverdi"];
   const [hasICS, setHasICS] = useState(true);
   const [checks, setChecks] = useState({});
   const [notes, setNotes] = useState({});
