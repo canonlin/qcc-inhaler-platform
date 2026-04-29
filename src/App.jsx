@@ -296,35 +296,42 @@ function TimeInput({ value, onChange }) {
 }
 
 // ── 元件：操作查檢頁面（獨立元件，避免父層重渲染） ────────────
-function CheckPageView({ deviceType, drugName, hasICS, setHasICS, checks, setChecks, setNotes, calcScore, getSteps }) {
+function CheckPageView({ deviceType, drugName, initialHasICS, checks, setChecks, setNotes, setHasICSToParent, calcScore, getSteps }) {
+  // hasICS 完全由內部管理，不受父層重渲染影響
+  const [localHasICS, setLocalHasICS] = useState(initialHasICS);
+
+  // 同步給父層（用於 calcScore 和 handleSubmit）
+  const handleICS = (v) => {
+    setLocalHasICS(v);
+    setHasICSToParent(v);
+  };
+
   const steps = getSteps();
-  const { correct, total } = calcScore();
+  const { correct, total } = calcScore(localHasICS);
   const criticals = steps.filter(s => s.critical && checks[s.id] === "錯誤");
 
-  // 用 useCallback 穩定 onValue/onNote，防止 CheckRow 重建
-  const makeOnValue = useCallback((id) => (v) => {
-    setChecks(p => ({ ...p, [id]: v }));
-  }, [setChecks]);
-
-  const makeOnNote = useCallback((id) => (v) => {
-    setNotes(p => ({ ...p, [id]: v }));
-  }, [setNotes]);
+  const handleValue = useRef({});
+  const handleNote = useRef({});
+  steps.forEach(s => {
+    if (!handleValue.current[s.id]) handleValue.current[s.id] = (v) => setChecks(p => ({ ...p, [s.id]: v }));
+    if (!handleNote.current[s.id]) handleNote.current[s.id] = (v) => setNotes(p => ({ ...p, [s.id]: v }));
+  });
 
   return (
     <div>
       <div style={sectionTitle}>🔍 操作查檢表｜{deviceType} - {drugName}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, background: "#f0fdf4", padding: "10px 16px", borderRadius: 12 }}>
         <span style={{ fontSize: 13, fontWeight: 600 }}>含ICS成分？</span>
-        <BtnGroup options={["是", "否"]} value={hasICS ? "是" : "否"} onChange={v => setHasICS(v === "是")} color="#059669" />
+        <BtnGroup options={["是", "否"]} value={localHasICS ? "是" : "否"} onChange={v => handleICS(v === "是")} color="#059669" />
       </div>
       {steps.map(s => (
         <CheckRow
           key={s.id}
           step={s}
           value={checks[s.id] || ""}
-          hasICS={hasICS}
-          onValue={makeOnValue(s.id)}
-          onNote={makeOnNote(s.id)}
+          hasICS={localHasICS}
+          onValue={handleValue.current[s.id]}
+          onNote={handleNote.current[s.id]}
         />
       ))}
       <div style={{ marginTop: 16, padding: "14px 18px", background: "#f8fafc", borderRadius: 12, border: "1px solid #e2e8f0" }}>
@@ -582,8 +589,8 @@ function PharmacistForm({ onDone, onBack }) {
     return ELLIPTA_STEPS;
   };
 
-  const calcScore = () => {
-    const steps = getSteps().filter(s => !s.icsOnly || hasICS);
+  const calcScore = (ics = hasICS) => {
+    const steps = getSteps().filter(s => !s.icsOnly || ics);
     const correct = steps.filter(s => checks[s.id] === "正確").length;
     return { correct, total: steps.length, rate: steps.length ? correct / steps.length : 0 };
   };
@@ -664,7 +671,7 @@ function PharmacistForm({ onDone, onBack }) {
     if (step === 0) return basic.campus && basic.pharmacist && basic.patientType && basic.ageGroup && basic.gender && basic.deviceType && basic.drugName && basic.usageDuration;
     if (step === 1) {
       const steps = getSteps().filter(s => !s.icsOnly || hasICS);
-      return steps.every(s => checks[s.id]);
+      return steps.filter(s => !s.icsOnly || hasICS).every(s => checks[s.id]);
     }
     if (step === 2) return KNOWLEDGE_QS.every(q => knowledge[q.id]);
     return false;
@@ -692,8 +699,8 @@ function PharmacistForm({ onDone, onBack }) {
             <CheckPageView
               deviceType={basic.deviceType}
               drugName={basic.drugName}
-              hasICS={hasICS}
-              setHasICS={setHasICS}
+              initialHasICS={hasICS}
+              setHasICSToParent={setHasICS}
               checks={checks}
               setChecks={setChecks}
               setNotes={setNotes}
