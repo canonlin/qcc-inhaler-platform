@@ -620,56 +620,126 @@ function PatientForm({ onDone, onBack }) {
 }
 
 // ── 首頁儀表板 ────────────────────────────────────────────
-function Dashboard({ onMode, records, satRecords }) {
-  const totalCases = records.length;
-  const avgError = totalCases ? (records.reduce((s, r) => s + (r.errorRate || 0), 0) / totalCases * 100).toFixed(1) : "--";
-  const avgKnow = totalCases ? (records.reduce((s, r) => s + (r.knowledgeScore || 0), 0) / totalCases).toFixed(1) : "--";
+function Dashboard({ onMode }) {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState(null);
+
+  const fetchStats = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(GOOGLE_SHEET_URL + "?action=getStats");
+      const data = await res.json();
+      if (data.status === "ok") {
+        setStats(data);
+        setLastUpdate(new Date().toLocaleTimeString("zh-TW"));
+      }
+    } catch(e) { console.warn("載入失敗", e); }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchStats(); }, []);
+
+  const total = stats?.totalCases ?? "--";
+  const errorRate = stats?.avgErrorRate != null ? (stats.avgErrorRate * 100).toFixed(1) : "--";
+  const knowScore = stats?.avgKnowledge != null ? stats.avgKnowledge.toFixed(1) : "--";
+  const satScore = stats?.avgSatisfaction != null ? stats.avgSatisfaction.toFixed(2) : "--";
+  const criticalRate = stats?.criticalErrorRate != null ? (stats.criticalErrorRate * 100).toFixed(1) : "--";
+
+  const pharmacistData = stats?.byPharmacist ?? [];
+  const deviceData = stats?.byDevice ?? [];
 
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%)", fontFamily: "'Noto Sans TC', sans-serif", color: "#fff" }}>
-      <div style={{ maxWidth: 640, margin: "0 auto", padding: "32px 16px" }}>
-        <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <div style={{ fontSize: 11, letterSpacing: 4, color: "#7dd3fc", fontWeight: 700, marginBottom: 8 }}>臺大醫院雲林分院 藥劑部 QCC</div>
-          <h1 style={{ fontSize: 26, fontWeight: 900, margin: "0 0 6px", lineHeight: 1.3 }}>吸入劑收案平台</h1>
-          <div style={{ fontSize: 13, color: "#94a3b8" }}>2026年現況把握期｜4/20 – 5/31</div>
+      <div style={{ maxWidth: 680, margin: "0 auto", padding: "24px 16px" }}>
+
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: 24 }}>
+          <div style={{ fontSize: 11, letterSpacing: 4, color: "#7dd3fc", fontWeight: 700, marginBottom: 6 }}>臺大醫院雲林分院 藥劑部 QCC</div>
+          <h1 style={{ fontSize: 24, fontWeight: 900, margin: "0 0 4px" }}>吸入劑收案平台</h1>
+          <div style={{ fontSize: 12, color: "#94a3b8" }}>2026年現況把握期｜4/20 – 5/31</div>
+          <div style={{ marginTop: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            {lastUpdate && <span style={{ fontSize: 11, color: "#64748b" }}>更新：{lastUpdate}</span>}
+            <button onClick={fetchStats} style={{ padding: "4px 12px", borderRadius: 20, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.1)", color: "#94a3b8", fontSize: 11, cursor: "pointer" }}>
+              {loading ? "載入中..." : "🔄 重新整理"}
+            </button>
+          </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 28 }}>
+
+        {/* 主要指標 */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 }}>
           {[
-            { label: "收案數", value: totalCases, unit: "案", color: "#7dd3fc" },
-            { label: "平均錯誤率", value: avgError, unit: "%", color: "#fca5a5" },
-            { label: "知識平均分", value: avgKnow, unit: "/10", color: "#86efac" },
+            { label: "總收案數", value: total, unit: "案", color: "#7dd3fc" },
+            { label: "操作錯誤率", value: errorRate, unit: "%", color: "#fca5a5" },
+            { label: "知識平均分", value: knowScore, unit: "/10", color: "#86efac" },
           ].map(d => (
-            <div key={d.label} style={{ background: "rgba(255,255,255,0.05)", borderRadius: 16, padding: "16px 12px", textAlign: "center", border: "1px solid rgba(255,255,255,0.1)" }}>
-              <div style={{ fontSize: 26, fontWeight: 900, color: d.color }}>{d.value}<span style={{ fontSize: 13 }}>{d.unit}</span></div>
-              <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>{d.label}</div>
+            <div key={d.label} style={{ background: "rgba(255,255,255,0.07)", borderRadius: 14, padding: "14px 8px", textAlign: "center", border: "1px solid rgba(255,255,255,0.12)" }}>
+              <div style={{ fontSize: 24, fontWeight: 900, color: d.color }}>{d.value}<span style={{ fontSize: 12 }}>{d.unit}</span></div>
+              <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>{d.label}</div>
             </div>
           ))}
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 28 }}>
-          <button onClick={() => onMode("pharmacist")} style={{ padding: "20px 24px", borderRadius: 16, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #0ea5e9, #0284c7)", color: "#fff", textAlign: "left", fontSize: 17, fontWeight: 800, boxShadow: "0 8px 24px rgba(14,165,233,0.3)" }}>
+
+        {/* 次要指標 */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
+          {[
+            { label: "重大錯誤率", value: criticalRate, unit: "%", color: "#fb923c", icon: "⚠️" },
+            { label: "滿意度平均", value: satScore, unit: "/5", color: "#c084fc", icon: "⭐" },
+          ].map(d => (
+            <div key={d.label} style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 16px", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ fontSize: 28 }}>{d.icon}</div>
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: d.color }}>{d.value}<span style={{ fontSize: 12 }}>{d.unit}</span></div>
+                <div style={{ fontSize: 11, color: "#94a3b8" }}>{d.label}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* 各藥師收案數 */}
+        {pharmacistData.length > 0 && (
+          <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 16, padding: 16, marginBottom: 16, border: "1px solid rgba(255,255,255,0.1)" }}>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: "#7dd3fc" }}>👨‍⚕️ 各藥師收案</div>
+            {pharmacistData.map(p => (
+              <div key={p.name} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                <div style={{ fontSize: 13, width: 60, color: "#e2e8f0", flexShrink: 0 }}>{p.name}</div>
+                <div style={{ flex: 1, background: "rgba(255,255,255,0.08)", borderRadius: 20, height: 8, overflow: "hidden" }}>
+                  <div style={{ height: "100%", background: "#0ea5e9", borderRadius: 20, width: `${stats?.totalCases ? (p.count / stats.totalCases * 100) : 0}%`, transition: "width 0.5s" }} />
+                </div>
+                <div style={{ fontSize: 13, color: "#7dd3fc", fontWeight: 700, width: 30, textAlign: "right" }}>{p.count}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 各劑型分布 */}
+        {deviceData.length > 0 && (
+          <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 16, padding: 16, marginBottom: 20, border: "1px solid rgba(255,255,255,0.1)" }}>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: "#86efac" }}>💊 吸入劑型分布</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {deviceData.map(d => (
+                <div key={d.type} style={{ background: "rgba(255,255,255,0.08)", borderRadius: 10, padding: "8px 14px", textAlign: "center" }}>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: "#86efac" }}>{d.count}</div>
+                  <div style={{ fontSize: 11, color: "#94a3b8" }}>{d.type}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 操作按鈕 */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
+          <button onClick={() => onMode("pharmacist")} style={{ padding: "18px 24px", borderRadius: 16, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #0ea5e9, #0284c7)", color: "#fff", textAlign: "left", fontSize: 16, fontWeight: 800, boxShadow: "0 8px 24px rgba(14,165,233,0.3)" }}>
             👨‍⚕️ 藥師收案
             <div style={{ fontSize: 12, fontWeight: 400, marginTop: 4, opacity: 0.85 }}>操作查檢 + 吸入劑知識評估</div>
           </button>
-          <button onClick={() => onMode("patient")} style={{ padding: "20px 24px", borderRadius: 16, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #10b981, #059669)", color: "#fff", textAlign: "left", fontSize: 17, fontWeight: 800, boxShadow: "0 8px 24px rgba(16,185,129,0.3)" }}>
+          <button onClick={() => onMode("patient")} style={{ padding: "18px 24px", borderRadius: 16, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #10b981, #059669)", color: "#fff", textAlign: "left", fontSize: 16, fontWeight: 800, boxShadow: "0 8px 24px rgba(16,185,129,0.3)" }}>
             🙋 病人填寫
             <div style={{ fontSize: 12, fontWeight: 400, marginTop: 4, opacity: 0.85 }}>衛教滿意度問卷（衛教後給病人填）</div>
           </button>
         </div>
-        <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 16, padding: 20, border: "1px solid rgba(255,255,255,0.1)" }}>
-          <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 15 }}>📊 資料匯出</div>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button onClick={() => records.length && downloadCSV(records, "QCC藥師收案資料.csv")} disabled={!records.length}
-              style={{ padding: "10px 18px", borderRadius: 10, border: "none", cursor: records.length ? "pointer" : "not-allowed", background: records.length ? "#0ea5e9" : "#334155", color: "#fff", fontWeight: 700, fontSize: 13 }}>
-              ⬇ 藥師資料 CSV ({records.length}筆)
-            </button>
-            <button onClick={() => satRecords.length && downloadCSV(satRecords, "QCC滿意度資料.csv")} disabled={!satRecords.length}
-              style={{ padding: "10px 18px", borderRadius: 10, border: "none", cursor: satRecords.length ? "pointer" : "not-allowed", background: satRecords.length ? "#10b981" : "#334155", color: "#fff", fontWeight: 700, fontSize: 13 }}>
-              ⬇ 滿意度 CSV ({satRecords.length}筆)
-            </button>
-          </div>
-          <div style={{ fontSize: 11, color: "#64748b", marginTop: 8 }}>匯出後直接貼入 Google 試算表即可統計</div>
-        </div>
-        <div style={{ textAlign: "center", marginTop: 24, fontSize: 11, color: "#334155" }}>斗六院區 ／ 虎尾院區｜TQM 115年度品管圈競賽</div>
+
+        <div style={{ textAlign: "center", fontSize: 11, color: "#334155" }}>斗六院區 ／ 虎尾院區｜TQM 115年度品管圈競賽</div>
       </div>
     </div>
   );
@@ -683,5 +753,5 @@ export default function App() {
 
   if (mode === "pharmacist") return <PharmacistForm onDone={(r) => { setRecords(p => [...p, r]); setMode(null); }} onBack={() => setMode(null)} />;
   if (mode === "patient") return <PatientForm onDone={(r) => { setSatRecords(p => [...p, r]); setMode(null); }} onBack={() => setMode(null)} />;
-  return <Dashboard onMode={setMode} records={records} satRecords={satRecords} />;
+  return <Dashboard onMode={setMode} />;
 }
