@@ -737,6 +737,10 @@ function Dashboard({ onMode }) {
             🙋 病人填寫
             <div style={{ fontSize: 12, fontWeight: 400, marginTop: 4, opacity: 0.85 }}>衛教滿意度問卷（衛教後給病人填）</div>
           </button>
+          <button onClick={() => onMode("analytics")} style={{ padding: "18px 24px", borderRadius: 16, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #f59e0b, #d97706)", color: "#fff", textAlign: "left", fontSize: 16, fontWeight: 800, boxShadow: "0 8px 24px rgba(245,158,11,0.3)" }}>
+            📊 數據分析儀表板
+            <div style={{ fontSize: 12, fontWeight: 400, marginTop: 4, opacity: 0.85 }}>柏拉圖・錯誤分析・各藥師進度・知識題統計</div>
+          </button>
         </div>
 
         <div style={{ textAlign: "center", fontSize: 11, color: "#334155" }}>斗六院區 ／ 虎尾院區｜TQM 115年度品管圈競賽</div>
@@ -746,6 +750,230 @@ function Dashboard({ onMode }) {
 }
 
 // ── 主應用 ────────────────────────────────────────────────
+
+// ── 數據分析儀表板 ─────────────────────────────────────────
+function AnalyticsDashboard({ onBack }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState(null);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(GOOGLE_SHEET_URL + "?action=getDetail");
+      const json = await res.json();
+      if (json.status === "ok") { setData(json); setLastUpdate(new Date().toLocaleTimeString("zh-TW")); }
+    } catch(e) { console.warn("載入失敗", e); }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const bg = "linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%)";
+  const card = { background: "rgba(255,255,255,0.06)", borderRadius: 16, padding: 16, border: "1px solid rgba(255,255,255,0.1)", marginBottom: 16 };
+
+  return (
+    <div style={{ minHeight: "100vh", background: bg, fontFamily: "'Noto Sans TC', sans-serif", color: "#fff" }}>
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "20px 16px" }}>
+
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+          <button onClick={onBack} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#94a3b8" }}>←</button>
+          <div>
+            <div style={{ fontWeight: 900, fontSize: 18 }}>📊 數據分析儀表板</div>
+            <div style={{ fontSize: 12, color: "#64748b" }}>QCC 吸入劑現況把握期｜即時統計</div>
+          </div>
+          <button onClick={fetchData} style={{ marginLeft: "auto", padding: "6px 14px", borderRadius: 20, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.1)", color: "#94a3b8", fontSize: 12, cursor: "pointer" }}>
+            {loading ? "載入中..." : "🔄 重新整理"}
+          </button>
+        </div>
+
+        {loading && !data && (
+          <div style={{ textAlign: "center", padding: "60px 0", color: "#64748b" }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>📡</div>
+            <div>從 Google Sheets 載入資料中...</div>
+          </div>
+        )}
+
+        {data && data.totalCases === 0 && (
+          <div style={{ textAlign: "center", padding: "60px 0", color: "#64748b" }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
+            <div>尚無收案資料，開始收案後圖表將自動出現</div>
+          </div>
+        )}
+
+        {data && data.totalCases > 0 && (
+          <>
+            {/* 摘要指標 */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 16 }}>
+              {[
+                { label: "總收案", value: data.totalCases, unit: "案", color: "#7dd3fc" },
+                { label: "錯誤率", value: (data.avgErrorRate * 100).toFixed(1), unit: "%", color: "#fca5a5" },
+                { label: "知識分", value: data.avgKnowledge?.toFixed(1), unit: "/10", color: "#86efac" },
+                { label: "滿意度", value: data.avgSatisfaction?.toFixed(2), unit: "/5", color: "#c084fc" },
+              ].map(d => (
+                <div key={d.label} style={{ background: "rgba(255,255,255,0.07)", borderRadius: 12, padding: "12px 8px", textAlign: "center" }}>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: d.color }}>{d.value}<span style={{ fontSize: 11 }}>{d.unit}</span></div>
+                  <div style={{ fontSize: 11, color: "#94a3b8" }}>{d.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* 柏拉圖：各步驟錯誤次數 */}
+            {data.stepErrors && data.stepErrors.length > 0 && (
+              <div style={card}>
+                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#fca5a5" }}>📊 柏拉圖｜各步驟錯誤次數（前80%改善重點）</div>
+                <div style={{ fontSize: 11, color: "#64748b", marginBottom: 14 }}>依錯誤次數由高至低排列，橘線為累積百分比</div>
+                <ParetoChart data={data.stepErrors} total={data.totalCases} />
+              </div>
+            )}
+
+            {/* 知識題錯誤率 */}
+            {data.knowledgeErrors && data.knowledgeErrors.length > 0 && (
+              <div style={card}>
+                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: "#86efac" }}>🧠 知識評估｜各題答錯率</div>
+                {data.knowledgeErrors.map((q, i) => (
+                  <div key={i} style={{ marginBottom: 10 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <div style={{ fontSize: 12, color: "#e2e8f0", flex: 1, paddingRight: 8 }}>Q{q.qNum}. {q.text}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: q.rate > 0.5 ? "#fca5a5" : q.rate > 0.3 ? "#fbbf24" : "#86efac", flexShrink: 0 }}>{(q.rate * 100).toFixed(0)}%</div>
+                    </div>
+                    <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 20, height: 6 }}>
+                      <div style={{ height: "100%", borderRadius: 20, background: q.rate > 0.5 ? "#ef4444" : q.rate > 0.3 ? "#f59e0b" : "#22c55e", width: `${q.rate * 100}%`, transition: "width 0.5s" }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 各藥師統計 */}
+            {data.byPharmacist && data.byPharmacist.length > 0 && (
+              <div style={card}>
+                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: "#7dd3fc" }}>👨‍⚕️ 各藥師收案統計</div>
+                {data.byPharmacist.map(p => (
+                  <div key={p.name} style={{ marginBottom: 12, padding: "10px 12px", background: "rgba(255,255,255,0.04)", borderRadius: 10 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700 }}>{p.name}</span>
+                      <span style={{ fontSize: 12, color: "#94a3b8" }}>{p.count}案｜錯誤率 <span style={{ color: "#fca5a5", fontWeight: 700 }}>{(p.errorRate * 100).toFixed(1)}%</span></span>
+                    </div>
+                    <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 20, height: 8 }}>
+                      <div style={{ height: "100%", borderRadius: 20, background: "linear-gradient(90deg, #0ea5e9, #7c3aed)", width: `${data.totalCases ? p.count / data.totalCases * 100 : 0}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 劑型分布 */}
+            {data.byDevice && data.byDevice.length > 0 && (
+              <div style={card}>
+                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: "#86efac" }}>💊 吸入劑型分布</div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {data.byDevice.map(d => {
+                    const pct = data.totalCases ? (d.count / data.totalCases * 100).toFixed(1) : 0;
+                    const colors = { MDI: "#0ea5e9", DPI: "#10b981", SMI: "#8b5cf6" };
+                    return (
+                      <div key={d.type} style={{ flex: 1, minWidth: 80, background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "14px 10px", textAlign: "center", border: `1px solid ${colors[d.type] || "#475569"}40` }}>
+                        <div style={{ fontSize: 22, fontWeight: 900, color: colors[d.type] || "#94a3b8" }}>{d.count}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, marginTop: 2 }}>{d.type}</div>
+                        <div style={{ fontSize: 11, color: "#64748b" }}>{pct}%</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 每日趨勢 */}
+            {data.dailyTrend && data.dailyTrend.length > 1 && (
+              <div style={card}>
+                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: "#c084fc" }}>📈 每日收案趨勢</div>
+                <TrendChart data={data.dailyTrend} />
+              </div>
+            )}
+          </>
+        )}
+
+        <div style={{ textAlign: "center", marginTop: 8, fontSize: 11, color: "#334155" }}>
+          {lastUpdate && `最後更新：${lastUpdate}`}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── 柏拉圖元件 ────────────────────────────────────────────
+function ParetoChart({ data, total }) {
+  const maxVal = data[0]?.count || 1;
+  let cumulative = 0;
+  const cumData = data.map(d => { cumulative += d.count; return { ...d, cum: cumulative }; });
+  const grandTotal = cumulative;
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 160, paddingBottom: 24, position: "relative" }}>
+        {/* 累積線 */}
+        <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 136, overflow: "visible" }}>
+          <polyline
+            points={cumData.map((d, i) => {
+              const x = (i + 0.5) / cumData.length * 100;
+              const y = (1 - d.cum / grandTotal) * 100;
+              return `${x}%,${y}%`;
+            }).join(" ")}
+            fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round"
+          />
+          {/* 80% 基準線 */}
+          <line x1="0" y1="20%" x2="100%" y2="20%" stroke="rgba(245,158,11,0.4)" strokeWidth="1" strokeDasharray="4,4" />
+          <text x="101%" y="20%" fill="#f59e0b" fontSize="9" dominantBaseline="middle">80%</text>
+          {cumData.map((d, i) => {
+            const x = (i + 0.5) / cumData.length * 100;
+            const y = (1 - d.cum / grandTotal) * 100;
+            return <circle key={i} cx={`${x}%`} cy={`${y}%`} r="3" fill="#f59e0b" />;
+          })}
+        </svg>
+        {/* 柱狀圖 */}
+        {data.map((d, i) => {
+          const cum = cumData[i].cum / grandTotal;
+          const isKey = cum <= 0.8 || (i > 0 && cumData[i-1].cum / grandTotal < 0.8);
+          return (
+            <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 2 }}>{d.count}</div>
+              <div style={{
+                width: "80%", background: isKey ? "#ef4444" : "#475569",
+                borderRadius: "4px 4px 0 0",
+                height: `${(d.count / maxVal) * 110}px`,
+                minHeight: d.count > 0 ? 4 : 0,
+                transition: "height 0.5s",
+              }} />
+              <div style={{ fontSize: 9, color: "#94a3b8", marginTop: 4, textAlign: "center", lineHeight: 1.2 }}>{d.step}</div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", gap: 12, fontSize: 11, color: "#64748b", marginTop: 4 }}>
+        <div><span style={{ color: "#ef4444" }}>■</span> 改善重點（前80%）</div>
+        <div><span style={{ color: "#f59e0b" }}>—</span> 累積百分比</div>
+      </div>
+    </div>
+  );
+}
+
+// ── 趨勢圖元件 ────────────────────────────────────────────
+function TrendChart({ data }) {
+  const maxVal = Math.max(...data.map(d => d.count), 1);
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 100 }}>
+      {data.map((d, i) => (
+        <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <div style={{ fontSize: 10, color: "#c084fc", marginBottom: 2 }}>{d.count}</div>
+          <div style={{ width: "70%", background: "linear-gradient(180deg, #8b5cf6, #c084fc)", borderRadius: "4px 4px 0 0", height: `${(d.count / maxVal) * 70}px`, minHeight: d.count > 0 ? 4 : 0 }} />
+          <div style={{ fontSize: 9, color: "#64748b", marginTop: 4, textAlign: "center" }}>{d.date?.slice(5)}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function App() {
   const [mode, setMode] = useState(null);
   const [records, setRecords] = useState([]);
@@ -753,5 +981,6 @@ export default function App() {
 
   if (mode === "pharmacist") return <PharmacistForm onDone={(r) => { setRecords(p => [...p, r]); setMode(null); }} onBack={() => setMode(null)} />;
   if (mode === "patient") return <PatientForm onDone={(r) => { setSatRecords(p => [...p, r]); setMode(null); }} onBack={() => setMode(null)} />;
+  if (mode === "analytics") return <AnalyticsDashboard onBack={() => setMode(null)} />;
   return <Dashboard onMode={setMode} />;
 }
