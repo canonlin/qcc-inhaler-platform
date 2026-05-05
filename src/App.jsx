@@ -395,7 +395,7 @@ function PharmacistForm({ onDone, onBack }) {
   };
 
   const canNext = () => {
-    if (step === 0) return basic.campus && basic.pharmacist && basic.patientType && basic.ageGroup && basic.gender && basic.deviceType && basic.drugName && basic.usageDuration;
+    if (step === 0) return basic.campus && basic.pharmacist && basic.patientType && basic.ageGroup && basic.gender && basic.deviceType && basic.drugName && basic.usageDuration && basic.timePoint;
     if (step === 1) {
       const steps = getSteps().filter(s => !s.icsOnly || hasICS);
       return steps.every(s => checks[s.id]);
@@ -417,7 +417,7 @@ function PharmacistForm({ onDone, onBack }) {
     KNOWLEDGE_QS.forEach(q => { kResults[`知識Q${q.id.slice(1)}`] = knowledge[q.id] || "未答"; });
 
     const record = {
-      收案日期: basic.date, 院區: basic.campus, 藥師: basic.pharmacist,
+      病歷號碼: basic.patientId || "", 追蹤時間點: basic.timePoint || "M0（初評）", 收案日期: basic.date, 院區: basic.campus, 藥師: basic.pharmacist,
       病患類別: basic.patientType, 年齡層: basic.ageGroup, 性別: basic.gender,
       診斷: basic.diagnosis.join("/"), 吸入劑型: basic.deviceType, 藥品名稱: basic.drugName,
       使用多久: basic.usageDuration, 曾接受衛教: basic.priorEducation, 衛教時間_分鐘: basic.educationTime,
@@ -458,6 +458,13 @@ function PharmacistForm({ onDone, onBack }) {
             <div>
               <div style={{ fontSize: 16, fontWeight: 900, color: "#1e293b", marginBottom: 18, paddingBottom: 10, borderBottom: "2px solid #e2e8f0" }}>📋 基本資料</div>
               <Row label="收案日期"><input type="date" value={basic.date} onChange={e => setB("date", e.target.value)} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 14, width: "100%", boxSizing: "border-box" }} /></Row>
+              <Row label="病歷號碼（追蹤用）">
+                <input type="text" placeholder="請輸入病歷號碼" value={basic.patientId || ""} onChange={e => setB("patientId", e.target.value.trim())}
+                  style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 14, width: "100%", boxSizing: "border-box", fontFamily: "monospace", letterSpacing: 2 }} />
+              </Row>
+              <Row label="追蹤時間點">
+                <BtnGroup options={["M0（初評）", "M1（1個月）", "M3（3個月）", "M6（6個月）"]} value={basic.timePoint || ""} onChange={v => setB("timePoint", v)} color="#7c3aed" />
+              </Row>
               <Row label="院區"><BtnGroup options={["斗六", "虎尾"]} value={basic.campus} onChange={v => setB("campus", v)} color="#0ea5e9" /></Row>
               <Row label="藥師">
                 <select value={basic.pharmacist} onChange={e => setB("pharmacist", e.target.value)} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 14, width: "100%", boxSizing: "border-box" }}>
