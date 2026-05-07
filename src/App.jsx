@@ -415,8 +415,31 @@ function PharmacistForm({ onDone, onBack }) {
     const rate = total ? correct / total : 0;
     const kScore = calcKnowledge();
     const criticalErrors = getSteps().filter(s => s.critical && checks[s.id] === "錯誤");
+    // 固定所有裝置的所有步驟欄位，確保 Excel 欄位一致
+    const ALL_STEPS = [
+      // MDI
+      { id: "s1", label: "搖" }, { id: "s2", label: "開_MDI" }, { id: "s3", label: "吐_MDI" },
+      { id: "s4", label: "含_MDI" }, { id: "s5", label: "壓" }, { id: "s6", label: "吸_MDI" },
+      { id: "s7", label: "閉_MDI" }, { id: "s8", label: "漱_MDI" },
+      // Respimat/SMI
+      { id: "r1", label: "轉" }, { id: "r2", label: "開_SMI" }, { id: "r3", label: "吐_SMI" },
+      { id: "r4", label: "含_SMI" }, { id: "r5", label: "壓吸" }, { id: "r6", label: "吸_SMI" },
+      { id: "r7", label: "閉_SMI" }, { id: "r8", label: "吐2_SMI" },
+      // Ellipta/DPI
+      { id: "e1", label: "開_DPI" }, { id: "e2", label: "吐_DPI" }, { id: "e3", label: "含_DPI" },
+      { id: "e4", label: "吸_DPI" }, { id: "e5", label: "閉_DPI" }, { id: "e6", label: "關" },
+      { id: "e7", label: "漱_DPI" },
+      // Breezhaler
+      { id: "b1", label: "開_BRZ" }, { id: "b2", label: "置" }, { id: "b3", label: "蓋" },
+      { id: "b4", label: "刺" }, { id: "b5", label: "吐_BRZ" }, { id: "b6", label: "含_BRZ" },
+      { id: "b7", label: "吸_BRZ" }, { id: "b8", label: "閉_BRZ" }, { id: "b9", label: "查" },
+      { id: "b10", label: "收" },
+    ];
     const stepResults = {};
-    getSteps().forEach(s => { stepResults[`步驟_${s.label}`] = checks[s.id] || "未填"; stepResults[`備註_${s.label}`] = notes[s.id] || ""; });
+    ALL_STEPS.forEach(s => {
+      stepResults[`步驟_${s.label}`] = checks[s.id] || "";
+      stepResults[`備註_${s.label}`] = notes[s.id] || "";
+    });
     const kResults = {};
     KNOWLEDGE_QS.forEach(q => { kResults[`知識Q${q.id.slice(1)}`] = knowledge[q.id] || "未答"; });
 
@@ -773,6 +796,7 @@ function AnalyticsDashboard({ onBack }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [activeTab, setActiveTab] = useState(0);
 
   const fetchData = async () => {
     setLoading(true);
@@ -787,22 +811,49 @@ function AnalyticsDashboard({ onBack }) {
   useEffect(() => { fetchData(); }, []);
 
   const bg = "linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%)";
-  const card = { background: "rgba(255,255,255,0.06)", borderRadius: 16, padding: 16, border: "1px solid rgba(255,255,255,0.1)", marginBottom: 16 };
+  const card = { background: "rgba(255,255,255,0.06)", borderRadius: 16, padding: 16, border: "1px solid rgba(255,255,255,0.1)", marginBottom: 14 };
+
+  const TABS = [
+    { icon: "📊", label: "總覽" },
+    { icon: "💊", label: "裝置分析" },
+    { icon: "👥", label: "族群分析" },
+    { icon: "🧠", label: "知識分析" },
+    { icon: "📈", label: "追蹤分析" },
+  ];
+
+  const noData = (
+    <div style={{ textAlign: "center", padding: "40px 0", color: "#64748b" }}>
+      <div style={{ fontSize: 36, marginBottom: 8 }}>📋</div>
+      <div style={{ fontSize: 13 }}>尚無足夠資料</div>
+    </div>
+  );
 
   return (
     <div style={{ minHeight: "100vh", background: bg, fontFamily: "'Noto Sans TC', sans-serif", color: "#fff" }}>
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "20px 16px" }}>
 
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
           <button onClick={onBack} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#94a3b8" }}>←</button>
           <div>
-            <div style={{ fontWeight: 900, fontSize: 18 }}>📊 數據分析儀表板</div>
-            <div style={{ fontSize: 12, color: "#64748b" }}>QCC 吸入劑現況把握期｜即時統計</div>
+            <div style={{ fontWeight: 900, fontSize: 18 }}>數據分析儀表板</div>
+            <div style={{ fontSize: 12, color: "#64748b" }}>QCC 吸入劑｜{lastUpdate ? `更新：${lastUpdate}` : "載入中..."}</div>
           </div>
           <button onClick={fetchData} style={{ marginLeft: "auto", padding: "6px 14px", borderRadius: 20, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.1)", color: "#94a3b8", fontSize: 12, cursor: "pointer" }}>
-            {loading ? "載入中..." : "🔄 重新整理"}
+            {loading ? "⏳" : "🔄"}
           </button>
+        </div>
+
+        {/* Tab Bar */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 16, overflowX: "auto", paddingBottom: 4 }}>
+          {TABS.map((t, i) => (
+            <button key={i} onClick={() => setActiveTab(i)} style={{
+              padding: "8px 14px", borderRadius: 20, border: "none", cursor: "pointer", whiteSpace: "nowrap",
+              background: activeTab === i ? "#0ea5e9" : "rgba(255,255,255,0.08)",
+              color: activeTab === i ? "#fff" : "#94a3b8",
+              fontWeight: activeTab === i ? 700 : 400, fontSize: 13,
+            }}>{t.icon} {t.label}</button>
+          ))}
         </div>
 
         {loading && !data && (
@@ -812,109 +863,350 @@ function AnalyticsDashboard({ onBack }) {
           </div>
         )}
 
-        {data && data.totalCases === 0 && (
-          <div style={{ textAlign: "center", padding: "60px 0", color: "#64748b" }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
-            <div>尚無收案資料，開始收案後圖表將自動出現</div>
-          </div>
-        )}
-
-        {data && data.totalCases > 0 && (
+        {data && (
           <>
-            {/* 摘要指標 */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 16 }}>
-              {[
-                { label: "總收案", value: data.totalCases, unit: "案", color: "#7dd3fc" },
-                { label: "錯誤率", value: (data.avgErrorRate * 100).toFixed(1), unit: "%", color: "#fca5a5" },
-                { label: "知識分", value: data.avgKnowledge?.toFixed(1), unit: "/10", color: "#86efac" },
-                { label: "滿意度", value: data.avgSatisfaction?.toFixed(2), unit: "/5", color: "#c084fc" },
-              ].map(d => (
-                <div key={d.label} style={{ background: "rgba(255,255,255,0.07)", borderRadius: 12, padding: "12px 8px", textAlign: "center" }}>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: d.color }}>{d.value}<span style={{ fontSize: 11 }}>{d.unit}</span></div>
-                  <div style={{ fontSize: 11, color: "#94a3b8" }}>{d.label}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* 柏拉圖：各步驟錯誤次數 */}
-            {data.stepErrors && data.stepErrors.length > 0 && (
-              <div style={card}>
-                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#fca5a5" }}>📊 柏拉圖｜各步驟錯誤次數（前80%改善重點）</div>
-                <div style={{ fontSize: 11, color: "#64748b", marginBottom: 14 }}>依錯誤次數由高至低排列，橘線為累積百分比</div>
-                <ParetoChart data={data.stepErrors} total={data.totalCases} />
-              </div>
-            )}
-
-            {/* 知識題錯誤率 */}
-            {data.knowledgeErrors && data.knowledgeErrors.length > 0 && (
-              <div style={card}>
-                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: "#86efac" }}>🧠 知識評估｜各題答錯率</div>
-                {data.knowledgeErrors.map((q, i) => (
-                  <div key={i} style={{ marginBottom: 10 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                      <div style={{ fontSize: 12, color: "#e2e8f0", flex: 1, paddingRight: 8 }}>Q{q.qNum}. {q.text}</div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: q.rate > 0.5 ? "#fca5a5" : q.rate > 0.3 ? "#fbbf24" : "#86efac", flexShrink: 0 }}>{(q.rate * 100).toFixed(0)}%</div>
-                    </div>
-                    <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 20, height: 6 }}>
-                      <div style={{ height: "100%", borderRadius: 20, background: q.rate > 0.5 ? "#ef4444" : q.rate > 0.3 ? "#f59e0b" : "#22c55e", width: `${q.rate * 100}%`, transition: "width 0.5s" }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* 各藥師統計 */}
-            {data.byPharmacist && data.byPharmacist.length > 0 && (
-              <div style={card}>
-                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: "#7dd3fc" }}>👨‍⚕️ 各藥師收案統計</div>
-                {data.byPharmacist.map(p => (
-                  <div key={p.name} style={{ marginBottom: 12, padding: "10px 12px", background: "rgba(255,255,255,0.04)", borderRadius: 10 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                      <span style={{ fontSize: 14, fontWeight: 700 }}>{p.name}</span>
-                      <span style={{ fontSize: 12, color: "#94a3b8" }}>{p.count}案｜錯誤率 <span style={{ color: "#fca5a5", fontWeight: 700 }}>{(p.errorRate * 100).toFixed(1)}%</span></span>
-                    </div>
-                    <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 20, height: 8 }}>
-                      <div style={{ height: "100%", borderRadius: 20, background: "linear-gradient(90deg, #0ea5e9, #7c3aed)", width: `${data.totalCases ? p.count / data.totalCases * 100 : 0}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* 劑型分布 */}
-            {data.byDevice && data.byDevice.length > 0 && (
-              <div style={card}>
-                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: "#86efac" }}>💊 吸入劑型分布</div>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {data.byDevice.map(d => {
-                    const pct = data.totalCases ? (d.count / data.totalCases * 100).toFixed(1) : 0;
-                    const colors = { MDI: "#0ea5e9", DPI: "#10b981", SMI: "#8b5cf6" };
-                    return (
-                      <div key={d.type} style={{ flex: 1, minWidth: 80, background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "14px 10px", textAlign: "center", border: `1px solid ${colors[d.type] || "#475569"}40` }}>
-                        <div style={{ fontSize: 22, fontWeight: 900, color: colors[d.type] || "#94a3b8" }}>{d.count}</div>
-                        <div style={{ fontSize: 13, fontWeight: 700, marginTop: 2 }}>{d.type}</div>
-                        <div style={{ fontSize: 11, color: "#64748b" }}>{pct}%</div>
+            {/* ── Tab 0: 總覽 ── */}
+            {activeTab === 0 && (
+              <div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+                  {[
+                    { label: "總收案數", value: data.totalCases, unit: "案", color: "#7dd3fc", icon: "📋" },
+                    { label: "操作錯誤率", value: data.totalCases > 0 ? (data.avgErrorRate * 100).toFixed(1) : "--", unit: "%", color: "#fca5a5", icon: "❌" },
+                    { label: "知識平均分", value: data.totalCases > 0 ? data.avgKnowledge?.toFixed(1) : "--", unit: "/10", color: "#86efac", icon: "🧠" },
+                    { label: "滿意度平均", value: data.avgSatisfaction > 0 ? data.avgSatisfaction?.toFixed(2) : "--", unit: "/5", color: "#c084fc", icon: "⭐" },
+                    { label: "重大錯誤率", value: data.totalCases > 0 ? (data.criticalErrorRate * 100).toFixed(1) : "--", unit: "%", color: "#fb923c", icon: "⚠️" },
+                    { label: "收案藥師數", value: data.byPharmacist?.length || 0, unit: "位", color: "#67e8f9", icon: "👨‍⚕️" },
+                  ].map(d => (
+                    <div key={d.label} style={{ ...card, marginBottom: 0, display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{ fontSize: 28 }}>{d.icon}</div>
+                      <div>
+                        <div style={{ fontSize: 22, fontWeight: 900, color: d.color }}>{d.value}<span style={{ fontSize: 12 }}>{d.unit}</span></div>
+                        <div style={{ fontSize: 11, color: "#94a3b8" }}>{d.label}</div>
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
+
+                {/* 各藥師收案 */}
+                {data.byPharmacist?.length > 0 && (
+                  <div style={card}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: "#7dd3fc" }}>👨‍⚕️ 各藥師收案進度</div>
+                    {data.byPharmacist.map(p => (
+                      <div key={p.name} style={{ marginBottom: 10 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                          <span style={{ fontSize: 13, fontWeight: 600 }}>{p.name}</span>
+                          <span style={{ fontSize: 12, color: "#94a3b8" }}>{p.count}案　錯誤率 <span style={{ color: "#fca5a5", fontWeight: 700 }}>{(p.errorRate * 100).toFixed(1)}%</span></span>
+                        </div>
+                        <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 20, height: 8 }}>
+                          <div style={{ height: "100%", borderRadius: 20, background: "linear-gradient(90deg,#0ea5e9,#7c3aed)", width: `${data.totalCases ? p.count/data.totalCases*100 : 0}%`, transition: "width 0.5s" }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* 每日趨勢 */}
+                {data.dailyTrend?.length > 0 && (
+                  <div style={card}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: "#c084fc" }}>📅 每日收案趨勢</div>
+                    <TrendChart data={data.dailyTrend} />
+                  </div>
+                )}
               </div>
             )}
 
-            {/* 每日趨勢 */}
-            {data.dailyTrend && data.dailyTrend.length > 1 && (
-              <div style={card}>
-                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: "#c084fc" }}>📈 每日收案趨勢</div>
-                <TrendChart data={data.dailyTrend} />
+            {/* ── Tab 1: 裝置分析 ── */}
+            {activeTab === 1 && (
+              <div>
+                {data.totalCases === 0 ? noData : (
+                  <>
+                    {/* 各劑型收案數與錯誤率 */}
+                    {data.byDevice?.length > 0 && (
+                      <div style={card}>
+                        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: "#86efac" }}>💊 各吸入劑型統計</div>
+                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
+                          {data.byDevice.map(d => {
+                            const pct = data.totalCases ? (d.count/data.totalCases*100).toFixed(1) : 0;
+                            const colors = { MDI: "#0ea5e9", DPI: "#10b981", SMI: "#8b5cf6" };
+                            const errRate = d.errorRate != null ? (d.errorRate*100).toFixed(1) : "--";
+                            return (
+                              <div key={d.type} style={{ flex: 1, minWidth: 80, background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "14px 10px", textAlign: "center", border: `2px solid ${colors[d.type]||"#475569"}40` }}>
+                                <div style={{ fontSize: 22, fontWeight: 900, color: colors[d.type]||"#94a3b8" }}>{d.count}</div>
+                                <div style={{ fontSize: 13, fontWeight: 700 }}>{d.type}</div>
+                                <div style={{ fontSize: 11, color: "#64748b" }}>{pct}%</div>
+                                <div style={{ fontSize: 11, color: "#fca5a5", marginTop: 4 }}>錯誤率 {errRate}%</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* MDI 柏拉圖 */}
+                    {data.mdiStepErrors?.length > 0 && (
+                      <div style={card}>
+                        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#0ea5e9" }}>📊 MDI 錯誤步驟柏拉圖</div>
+                        <div style={{ fontSize: 11, color: "#64748b", marginBottom: 12 }}>壓力定量吸入器（pMDI）｜{data.mdiCount}案</div>
+                        <ParetoChart data={data.mdiStepErrors} />
+                      </div>
+                    )}
+
+                    {/* DPI 柏拉圖 */}
+                    {data.dpiStepErrors?.length > 0 && (
+                      <div style={card}>
+                        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#10b981" }}>📊 DPI 錯誤步驟柏拉圖</div>
+                        <div style={{ fontSize: 11, color: "#64748b", marginBottom: 12 }}>乾粉吸入器（Ellipta/Breezhaler）｜{data.dpiCount}案</div>
+                        <ParetoChart data={data.dpiStepErrors} />
+                      </div>
+                    )}
+
+                    {/* SMI 柏拉圖 */}
+                    {data.smiStepErrors?.length > 0 && (
+                      <div style={card}>
+                        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#8b5cf6" }}>📊 SMI 錯誤步驟柏拉圖</div>
+                        <div style={{ fontSize: 11, color: "#64748b", marginBottom: 12 }}>緩釋型氣霧吸入器（Respimat）｜{data.smiCount}案</div>
+                        <ParetoChart data={data.smiStepErrors} />
+                      </div>
+                    )}
+
+                    {(!data.mdiStepErrors?.length && !data.dpiStepErrors?.length && !data.smiStepErrors?.length) && noData}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* ── Tab 2: 族群分析 ── */}
+            {activeTab === 2 && (
+              <div>
+                {data.totalCases === 0 ? noData : (
+                  <>
+                    {/* 年齡層 */}
+                    {data.byAge?.length > 0 && (
+                      <div style={card}>
+                        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: "#fbbf24" }}>👥 年齡層分析</div>
+                        <GroupTable data={data.byAge} labelKey="age" />
+                      </div>
+                    )}
+
+                    {/* 診斷別 */}
+                    {data.byDiagnosis?.length > 0 && (
+                      <div style={card}>
+                        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: "#fb923c" }}>🫁 診斷別分析</div>
+                        <GroupTable data={data.byDiagnosis} labelKey="diagnosis" />
+                      </div>
+                    )}
+
+                    {/* 使用經驗 */}
+                    {data.byExperience?.length > 0 && (
+                      <div style={card}>
+                        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: "#34d399" }}>⏱ 使用經驗分析</div>
+                        <GroupTable data={data.byExperience} labelKey="experience" />
+                        <div style={{ fontSize: 11, color: "#64748b", marginTop: 8 }}>
+                          💡 使用越久但錯誤率仍高 → 習慣性錯誤，需定期複評
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 初診vs複診 */}
+                    {data.byPatientType?.length > 0 && (
+                      <div style={card}>
+                        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: "#60a5fa" }}>🏥 初診vs複診分析</div>
+                        <GroupTable data={data.byPatientType} labelKey="type" />
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* ── Tab 3: 知識分析 ── */}
+            {activeTab === 3 && (
+              <div>
+                {data.totalCases === 0 ? noData : (
+                  <>
+                    {/* 各題答錯率 */}
+                    {data.knowledgeErrors?.length > 0 && (
+                      <div style={card}>
+                        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#86efac" }}>🧠 知識評估各題答錯率</div>
+                        <div style={{ fontSize: 11, color: "#64748b", marginBottom: 14 }}>紅色＞50%、黃色30-50%、綠色＜30%</div>
+                        {data.knowledgeErrors.map((q, i) => (
+                          <div key={i} style={{ marginBottom: 12 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                              <div style={{ fontSize: 12, color: "#e2e8f0", flex: 1, paddingRight: 8, lineHeight: 1.4 }}>
+                                <span style={{ fontWeight: 700, color: "#0ea5e9" }}>Q{q.qNum}.</span> {q.text}
+                                {q.reverse && <span style={{ marginLeft: 4, fontSize: 10, background: "#fef3c7", color: "#92400e", padding: "1px 4px", borderRadius: 4 }}>反向題</span>}
+                              </div>
+                              <div style={{ fontSize: 13, fontWeight: 700, flexShrink: 0, color: q.rate > 0.5 ? "#fca5a5" : q.rate > 0.3 ? "#fbbf24" : "#86efac" }}>
+                                {(q.rate*100).toFixed(0)}%
+                              </div>
+                            </div>
+                            <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 20, height: 6 }}>
+                              <div style={{ height: "100%", borderRadius: 20, background: q.rate>0.5?"#ef4444":q.rate>0.3?"#f59e0b":"#22c55e", width: `${q.rate*100}%`, transition: "width 0.5s" }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 知識分數 vs 操作正確率 */}
+                    {data.knowledgeVsOperation && (
+                      <div style={card}>
+                        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: "#c084fc" }}>🔗 知識分數 vs 操作正確率</div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                          {[
+                            { label: "知識高分（≥7分）", data: data.knowledgeVsOperation.high, color: "#86efac" },
+                            { label: "知識中分（4-6分）", data: data.knowledgeVsOperation.mid, color: "#fbbf24" },
+                            { label: "知識低分（≤3分）", data: data.knowledgeVsOperation.low, color: "#fca5a5" },
+                          ].map(g => (
+                            <div key={g.label} style={{ background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "12px 10px", textAlign: "center" }}>
+                              <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 6, lineHeight: 1.3 }}>{g.label}</div>
+                              <div style={{ fontSize: 10, color: "#64748b" }}>{g.data?.count || 0}案</div>
+                              <div style={{ fontSize: 18, fontWeight: 900, color: g.color, margin: "4px 0" }}>
+                                {g.data?.operationRate != null ? g.data.operationRate.toFixed(1) + "%" : "--"}
+                              </div>
+                              <div style={{ fontSize: 10, color: "#64748b" }}>操作正確率</div>
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{ fontSize: 11, color: "#64748b", marginTop: 10, lineHeight: 1.6 }}>
+                          💡 若知識高但操作低 → 問題在動作協調，需加強示範練習<br/>
+                          💡 若知識低但操作高 → 靠習慣操作，概念模糊，需加強衛教
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* ── Tab 4: 追蹤分析 ── */}
+            {activeTab === 4 && (
+              <div>
+                {/* M0/M1完成統計 */}
+                <div style={card}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: "#a78bfa" }}>📈 各時間點收案統計</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
+                    {[
+                      { label: "M0初評", count: data.byTimePoint?.M0 || 0, color: "#94a3b8" },
+                      { label: "M1一個月", count: data.byTimePoint?.M1 || 0, color: "#60a5fa" },
+                      { label: "M3三個月", count: data.byTimePoint?.M3 || 0, color: "#34d399" },
+                      { label: "M6六個月", count: data.byTimePoint?.M6 || 0, color: "#a78bfa" },
+                    ].map(d => (
+                      <div key={d.label} style={{ background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "12px 8px", textAlign: "center" }}>
+                        <div style={{ fontSize: 24, fontWeight: 900, color: d.color }}>{d.count}</div>
+                        <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>{d.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* M0→M1 群體進步趨勢 */}
+                {data.trackingProgress && data.trackingProgress.hasData ? (
+                  <div style={card}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: "#34d399" }}>📊 M0→M1 群體進步趨勢</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      {[
+                        { label: "操作正確率", m0: data.trackingProgress.m0OperationRate, m1: data.trackingProgress.m1OperationRate, unit: "%", color: "#34d399" },
+                        { label: "知識分數", m0: data.trackingProgress.m0Knowledge, m1: data.trackingProgress.m1Knowledge, unit: "/10", color: "#60a5fa" },
+                      ].map(d => {
+                        const diff = d.m1 != null && d.m0 != null ? d.m1 - d.m0 : null;
+                        return (
+                          <div key={d.label} style={{ background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: 14 }}>
+                            <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 8 }}>{d.label}</div>
+                            <div style={{ display: "flex", justifyContent: "space-around", alignItems: "center" }}>
+                              <div style={{ textAlign: "center" }}>
+                                <div style={{ fontSize: 11, color: "#64748b" }}>M0</div>
+                                <div style={{ fontSize: 20, fontWeight: 900, color: "#94a3b8" }}>{d.m0?.toFixed(1)}{d.unit}</div>
+                              </div>
+                              <div style={{ fontSize: 20 }}>→</div>
+                              <div style={{ textAlign: "center" }}>
+                                <div style={{ fontSize: 11, color: "#64748b" }}>M1</div>
+                                <div style={{ fontSize: 20, fontWeight: 900, color: d.color }}>{d.m1?.toFixed(1)}{d.unit}</div>
+                              </div>
+                            </div>
+                            {diff != null && (
+                              <div style={{ textAlign: "center", marginTop: 8, fontSize: 13, fontWeight: 700, color: diff >= 0 ? "#86efac" : "#fca5a5" }}>
+                                {diff >= 0 ? "▲" : "▼"} {Math.abs(diff).toFixed(1)}{d.unit} 改善
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={card}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8, color: "#34d399" }}>📊 M0→M1 群體進步趨勢</div>
+                    <div style={{ textAlign: "center", padding: "24px 0", color: "#64748b" }}>
+                      <div style={{ fontSize: 32, marginBottom: 8 }}>⏳</div>
+                      <div style={{ fontSize: 13 }}>待M1追蹤資料收集後顯示</div>
+                      <div style={{ fontSize: 11, marginTop: 4 }}>目前M0已收 {data.byTimePoint?.M0 || 0} 案</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 追蹤完成率 */}
+                {(data.byTimePoint?.M0 || 0) > 0 && (
+                  <div style={card}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: "#fbbf24" }}>✅ 追蹤完成率</div>
+                    {[
+                      { label: "M1追蹤完成率", done: data.byTimePoint?.M1 || 0, total: data.byTimePoint?.M0 || 0 },
+                      { label: "M3追蹤完成率", done: data.byTimePoint?.M3 || 0, total: data.byTimePoint?.M0 || 0 },
+                      { label: "M6追蹤完成率", done: data.byTimePoint?.M6 || 0, total: data.byTimePoint?.M0 || 0 },
+                    ].map(d => {
+                      const pct = d.total > 0 ? (d.done/d.total*100).toFixed(0) : 0;
+                      return (
+                        <div key={d.label} style={{ marginBottom: 10 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, fontSize: 12 }}>
+                            <span>{d.label}</span>
+                            <span style={{ color: "#fbbf24", fontWeight: 700 }}>{d.done}/{d.total}（{pct}%）</span>
+                          </div>
+                          <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 20, height: 6 }}>
+                            <div style={{ height: "100%", borderRadius: 20, background: "#f59e0b", width: `${pct}%`, transition: "width 0.5s" }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </>
         )}
-
-        <div style={{ textAlign: "center", marginTop: 8, fontSize: 11, color: "#334155" }}>
-          {lastUpdate && `最後更新：${lastUpdate}`}
-        </div>
       </div>
+    </div>
+  );
+}
+
+
+// ── 族群分析表格元件 ─────────────────────────────────────
+function GroupTable({ data, labelKey }) {
+  if (!data || data.length === 0) return null;
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+        <thead>
+          <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+            {[" ", "案數", "操作正確率", "知識平均分", "Critical Error率"].map(h => (
+              <th key={h} style={{ padding: "6px 8px", color: "#64748b", fontWeight: 600, textAlign: h===" " ? "left" : "center" }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((row, i) => {
+            const errColor = row.operationRate >= 80 ? "#86efac" : row.operationRate >= 60 ? "#fbbf24" : "#fca5a5";
+            return (
+              <tr key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                <td style={{ padding: "8px 8px", fontWeight: 600, color: "#e2e8f0" }}>{row[labelKey]}</td>
+                <td style={{ padding: "8px 8px", textAlign: "center", color: "#94a3b8" }}>{row.count}</td>
+                <td style={{ padding: "8px 8px", textAlign: "center", fontWeight: 700, color: errColor }}>{row.operationRate?.toFixed(1)}%</td>
+                <td style={{ padding: "8px 8px", textAlign: "center", color: "#60a5fa" }}>{row.knowledgeScore?.toFixed(1)}/10</td>
+                <td style={{ padding: "8px 8px", textAlign: "center", color: "#fb923c" }}>{row.criticalRate != null ? (row.criticalRate*100).toFixed(0)+"%" : "--"}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
