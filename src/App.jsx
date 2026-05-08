@@ -13,48 +13,48 @@ const DRUG_LIST = {
 const NO_ICS_DRUGS = ["Anoro", "Ultibro", "Berotec N", "Bevespi", "Spiriva", "Spiolto", "Striverdi"];
 
 const MDI_STEPS = [
-  { id: "s1", label: "搖", desc: "瓶底向上，搖勻 4-5次 ≥5秒", critical: true },
-  { id: "s2", label: "開", desc: "打開吸嘴蓋，檢查無異物", critical: false },
-  { id: "s3", label: "吐", desc: "先吐氣至肺空", critical: true },
-  { id: "s4", label: "含", desc: "吸嘴含入，雙唇緊閉包住", critical: true },
-  { id: "s5", label: "壓", desc: "開始慢深吸，同時按壓藥瓶底（誤差≤1秒）", critical: true },
-  { id: "s6", label: "吸", desc: "持續慢深吸 3-5秒", critical: true },
-  { id: "s7", label: "閉", desc: "移開吸嘴，閉氣 5-10秒，緩吐氣", critical: true },
-  { id: "s8", label: "漱", desc: "漱口（含類固醇），清潔乾燥", critical: false, icsOnly: true },
+  { id: "s1", label: "MDI_搖", desc: "瓶底向上，搖勻 4-5次 ≥5秒", critical: true, display: "搖" },
+  { id: "s2", label: "MDI_開", desc: "打開吸嘴蓋，檢查無異物", critical: false, display: "開" },
+  { id: "s3", label: "MDI_吐", desc: "先吐氣至肺空", critical: true, display: "吐" },
+  { id: "s4", label: "MDI_含", desc: "吸嘴含入，雙唇緊閉包住", critical: true, display: "含" },
+  { id: "s5", label: "MDI_壓", desc: "開始慢深吸，同時按壓藥瓶底（誤差≤1秒）", critical: true, display: "壓" },
+  { id: "s6", label: "MDI_吸", desc: "持續慢深吸 3-5秒", critical: true, display: "吸" },
+  { id: "s7", label: "MDI_閉", desc: "移開吸嘴，閉氣 5-10秒，緩吐氣", critical: true, display: "閉" },
+  { id: "s8", label: "MDI_漱", desc: "漱口（含類固醇），清潔乾燥", critical: false, icsOnly: true, display: "漱" },
 ];
 
 const RESPIMAT_STEPS = [
-  { id: "r1", label: "轉", desc: "轉動裝置 180°＋聽到「卡」聲", critical: true },
-  { id: "r2", label: "開", desc: "打開防塵蓋，直立持握", critical: false },
-  { id: "r3", label: "吐", desc: "緩慢完全吐氣（對旁吐，勿對吸嘴）", critical: false },
-  { id: "r4", label: "含", desc: "含住吸嘴並嘴唇密合", critical: true },
-  { id: "r5", label: "壓吸", desc: "開始吸氣後1秒內按下釋放鈕（誤差≤1秒）", critical: true },
-  { id: "r6", label: "吸", desc: "持續緩慢深吸至少 3-5秒", critical: true },
-  { id: "r7", label: "閉", desc: "移開吸入器後閉氣 5-10秒", critical: true },
-  { id: "r8", label: "吐", desc: "緩慢吐氣", critical: false },
+  { id: "r1", label: "RSP_轉", desc: "轉動裝置 180°＋聽到「卡」聲", critical: true, display: "轉" },
+  { id: "r2", label: "RSP_開", desc: "打開防塵蓋，直立持握", critical: false, display: "開" },
+  { id: "r3", label: "RSP_吐", desc: "緩慢完全吐氣（對旁吐，勿對吸嘴）", critical: false, display: "吐" },
+  { id: "r4", label: "RSP_含", desc: "含住吸嘴並嘴唇密合", critical: true, display: "含" },
+  { id: "r5", label: "RSP_壓吸", desc: "開始吸氣後1秒內按下釋放鈕（誤差≤1秒）", critical: true, display: "壓吸" },
+  { id: "r6", label: "RSP_吸", desc: "持續緩慢深吸至少 3-5秒", critical: true, display: "吸" },
+  { id: "r7", label: "RSP_閉", desc: "移開吸入器後閉氣 5-10秒", critical: true, display: "閉" },
+  { id: "r8", label: "RSP_吐2", desc: "緩慢吐氣", critical: false, display: "吐氣" },
 ];
 
 const ELLIPTA_STEPS = [
-  { id: "e1", label: "開", desc: "推蓋至「喀」聲，檢查劑量窗", critical: false },
-  { id: "e2", label: "吐", desc: "先吐氣至肺空（勿對裝置吐氣）", critical: true },
-  { id: "e3", label: "含", desc: "吸嘴含入，雙唇緊閉", critical: true },
-  { id: "e4", label: "吸", desc: "快速深吸（1-2秒肺滿，胸廓明顯擴張）", critical: true },
-  { id: "e5", label: "閉", desc: "閉氣 3-5秒，緩吐氣", critical: true },
-  { id: "e6", label: "關", desc: "關蓋，重置（勿重吸）", critical: false },
-  { id: "e7", label: "漱", desc: "含ICS者漱口後吐掉", critical: false, icsOnly: true },
+  { id: "e1", label: "ELP_開", desc: "推蓋至「喀」聲，檢查劑量窗", critical: false, display: "開" },
+  { id: "e2", label: "ELP_吐", desc: "先吐氣至肺空（勿對裝置吐氣）", critical: true, display: "吐" },
+  { id: "e3", label: "ELP_含", desc: "吸嘴含入，雙唇緊閉", critical: true, display: "含" },
+  { id: "e4", label: "ELP_吸", desc: "快速深吸（1-2秒肺滿，胸廓明顯擴張）", critical: true, display: "吸" },
+  { id: "e5", label: "ELP_閉", desc: "閉氣 3-5秒，緩吐氣", critical: true, display: "閉" },
+  { id: "e6", label: "ELP_關", desc: "關蓋，重置（勿重吸）", critical: false, display: "關" },
+  { id: "e7", label: "ELP_漱", desc: "含ICS者漱口後吐掉", critical: false, icsOnly: true, display: "漱" },
 ];
 
 const BREEZHALER_STEPS = [
-  { id: "b1", label: "開", desc: "拔帽並打開口含器", critical: false },
-  { id: "b2", label: "置", desc: "以乾燥手取出膠囊置入槽內（勿吞服）", critical: true },
-  { id: "b3", label: "蓋", desc: "蓋上（聽「喀」聲）", critical: false },
-  { id: "b4", label: "刺", desc: "直立持握，按兩側按鈕一次刺破膠囊", critical: true },
-  { id: "b5", label: "吐", desc: "先吐氣至肺空（勿對吸嘴）", critical: true },
-  { id: "b6", label: "含", desc: "吸嘴含入，雙唇緊閉", critical: true },
-  { id: "b7", label: "吸", desc: "快速且深吸一次，可聽見膠囊震動聲", critical: true },
-  { id: "b8", label: "閉", desc: "閉氣 5-10秒，緩吐氣", critical: true },
-  { id: "b9", label: "查", desc: "打開檢查膠囊殘粉，若有粉末再吸一次", critical: true },
-  { id: "b10", label: "收", desc: "倒空膠囊殼並關閉裝置", critical: false },
+  { id: "b1", label: "BRZ_開", desc: "拔帽並打開口含器", critical: false, display: "開" },
+  { id: "b2", label: "BRZ_置", desc: "以乾燥手取出膠囊置入槽內（勿吞服）", critical: true, display: "置" },
+  { id: "b3", label: "BRZ_蓋", desc: "蓋上（聽「喀」聲）", critical: false, display: "蓋" },
+  { id: "b4", label: "BRZ_刺", desc: "直立持握，按兩側按鈕一次刺破膠囊", critical: true, display: "刺" },
+  { id: "b5", label: "BRZ_吐", desc: "先吐氣至肺空（勿對吸嘴）", critical: true, display: "吐" },
+  { id: "b6", label: "BRZ_含", desc: "吸嘴含入，雙唇緊閉", critical: true, display: "含" },
+  { id: "b7", label: "BRZ_吸", desc: "快速且深吸一次，可聽見膠囊震動聲", critical: true, display: "吸" },
+  { id: "b8", label: "BRZ_閉", desc: "閉氣 5-10秒，緩吐氣", critical: true, display: "閉" },
+  { id: "b9", label: "BRZ_查", desc: "打開檢查膠囊殘粉，若有粉末再吸一次", critical: true, display: "查" },
+  { id: "b10", label: "BRZ_收", desc: "倒空膠囊殼並關閉裝置", critical: false, display: "收" },
 ];
 
 const KNOWLEDGE_QS = [
@@ -226,7 +226,7 @@ function CheckRow({ step, value, onValue, onNote, hasICS }) {
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
             {step.critical && <span style={{ background: "#ef4444", color: "#fff", fontSize: 11, fontWeight: 700, padding: "2px 6px", borderRadius: 4 }}>★重大</span>}
-            <span style={{ fontWeight: 700, color: "#1e293b", fontSize: 15 }}>【{step.label}】</span>
+            <span style={{ fontWeight: 700, color: "#1e293b", fontSize: 15 }}>【{step.display || step.label}】</span>
           </div>
           <div style={{ fontSize: 13, color: "#475569" }}>{step.desc}</div>
         </div>
@@ -415,25 +415,25 @@ function PharmacistForm({ onDone, onBack }) {
     const rate = total ? correct / total : 0;
     const kScore = calcKnowledge();
     const criticalErrors = getSteps().filter(s => s.critical && checks[s.id] === "錯誤");
-    // 固定所有裝置的所有步驟欄位，確保 Excel 欄位一致
+    // 固定所有裝置的所有步驟欄位，確保 Excel 欄位一致（含裝置前綴）
     const ALL_STEPS = [
       // MDI
-      { id: "s1", label: "搖" }, { id: "s2", label: "開_MDI" }, { id: "s3", label: "吐_MDI" },
-      { id: "s4", label: "含_MDI" }, { id: "s5", label: "壓" }, { id: "s6", label: "吸_MDI" },
-      { id: "s7", label: "閉_MDI" }, { id: "s8", label: "漱_MDI" },
+      { id: "s1", label: "MDI_搖" }, { id: "s2", label: "MDI_開" }, { id: "s3", label: "MDI_吐" },
+      { id: "s4", label: "MDI_含" }, { id: "s5", label: "MDI_壓" }, { id: "s6", label: "MDI_吸" },
+      { id: "s7", label: "MDI_閉" }, { id: "s8", label: "MDI_漱" },
       // Respimat/SMI
-      { id: "r1", label: "轉" }, { id: "r2", label: "開_SMI" }, { id: "r3", label: "吐_SMI" },
-      { id: "r4", label: "含_SMI" }, { id: "r5", label: "壓吸" }, { id: "r6", label: "吸_SMI" },
-      { id: "r7", label: "閉_SMI" }, { id: "r8", label: "吐2_SMI" },
+      { id: "r1", label: "RSP_轉" }, { id: "r2", label: "RSP_開" }, { id: "r3", label: "RSP_吐" },
+      { id: "r4", label: "RSP_含" }, { id: "r5", label: "RSP_壓吸" }, { id: "r6", label: "RSP_吸" },
+      { id: "r7", label: "RSP_閉" }, { id: "r8", label: "RSP_吐2" },
       // Ellipta/DPI
-      { id: "e1", label: "開_DPI" }, { id: "e2", label: "吐_DPI" }, { id: "e3", label: "含_DPI" },
-      { id: "e4", label: "吸_DPI" }, { id: "e5", label: "閉_DPI" }, { id: "e6", label: "關" },
-      { id: "e7", label: "漱_DPI" },
+      { id: "e1", label: "ELP_開" }, { id: "e2", label: "ELP_吐" }, { id: "e3", label: "ELP_含" },
+      { id: "e4", label: "ELP_吸" }, { id: "e5", label: "ELP_閉" }, { id: "e6", label: "ELP_關" },
+      { id: "e7", label: "ELP_漱" },
       // Breezhaler
-      { id: "b1", label: "開_BRZ" }, { id: "b2", label: "置" }, { id: "b3", label: "蓋" },
-      { id: "b4", label: "刺" }, { id: "b5", label: "吐_BRZ" }, { id: "b6", label: "含_BRZ" },
-      { id: "b7", label: "吸_BRZ" }, { id: "b8", label: "閉_BRZ" }, { id: "b9", label: "查" },
-      { id: "b10", label: "收" },
+      { id: "b1", label: "BRZ_開" }, { id: "b2", label: "BRZ_置" }, { id: "b3", label: "BRZ_蓋" },
+      { id: "b4", label: "BRZ_刺" }, { id: "b5", label: "BRZ_吐" }, { id: "b6", label: "BRZ_含" },
+      { id: "b7", label: "BRZ_吸" }, { id: "b8", label: "BRZ_閉" }, { id: "b9", label: "BRZ_查" },
+      { id: "b10", label: "BRZ_收" },
     ];
     const stepResults = {};
     ALL_STEPS.forEach(s => {
